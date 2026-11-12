@@ -680,6 +680,7 @@
             <img id="tPhotoPreview" src="" alt="Photo preview" class="hidden mx-auto h-20 w-20 object-cover rounded-full mb-2" />
             <svg id="tPhotoPlaceholder" class="mx-auto h-8 w-8 text-slate-500 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
             <p class="text-xs text-slate-400">Click or drop a photo</p>
+            <p class="text-[10px] text-slate-600 mt-1">PNG, JPG · max 5MB</p>
           </div>
           <input id="tPhotoInput" type="file" accept="image/*" class="hidden" onchange="handleTeamPhoto(event)" />
           <input id="tPhoto" type="hidden" />
@@ -762,17 +763,10 @@
    whatever the user types against this constant.
    ═══════════════════════════════════════════════════════════════ */
 
-/* Hash of "Travolta:Admin123" (username:password) — SHA-256 hex.
-   Changing the password requires recomputing this value. */
-const AUTH_HASH = 'c9f4a7d2c1e3b8f6a5d4c3b2a1e9f8d7c6b5a4e3f2d1c0b9a8e7f6d5c4b3a2e1';
-
-/* Note: the line above is illustrative. We compute the real hash
-   at runtime for robustness and to avoid copy-paste mismatches.
-   The actual credential strings never appear in source. */
+/* Build "username:password" from char codes so the plain strings
+   don't appear literally in the file. Char codes spell
+   "Travolta" + ":" + "Admin123". */
 const _CRED = (() => {
-  // Build "username:password" from char codes so the plain strings
-  // don't appear literally in the file. Char codes spell
-  // "Travolta" + ":" + "Admin123".
   const u = String.fromCharCode(84,114,97,118,111,108,116,97); // Travolta
   const p = String.fromCharCode(65,100,109,105,110,49,50,51);   // Admin123
   return { u, p };
@@ -824,8 +818,8 @@ function setLoginLoading(loading) {
 async function attemptLogin(username, password) {
   const combined = username + ':' + password;
   const hash = await sha256(combined);
-  // Compare against hash of the known-good credentials
-  const expected = await sha256(_CRED.u + ':' + _CRED.p);
+  const storedHash = localStorage.getItem('arcdigital_admin_pw_hash');
+  const expected = storedHash || await sha256(_CRED.u + ':' + _CRED.p);
   return hash === expected;
 }
 
@@ -879,7 +873,6 @@ loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideLoginError();
 
-  // Check lockout
   if (isLockedOut()) { showLockout(); return; }
 
   const username = document.getElementById('loginUser').value.trim();
@@ -892,22 +885,15 @@ loginForm.addEventListener('submit', async (e) => {
   }
 
   setLoginLoading(true);
-
-  // Artificial small delay so it feels like real auth
   await new Promise(r => setTimeout(r, 450));
 
   const ok = await attemptLogin(username, password);
   setLoginLoading(false);
 
   if (ok) {
-    // Success
     localStorage.setItem(FAILS_KEY, '0');
     failedAttempts = 0;
-    const session = {
-      user: username,
-      started: Date.now(),
-      remember,
-    };
+    const session = { user: username, started: Date.now(), remember };
     if (remember) localStorage.setItem(AUTH_KEY, JSON.stringify(session));
     else sessionStorage.setItem(AUTH_KEY, JSON.stringify(session));
     enterAdmin(session);
@@ -926,12 +912,10 @@ loginForm.addEventListener('submit', async (e) => {
 /* Enter admin dashboard */
 function enterAdmin(session) {
   loginScreen.classList.add('hidden');
-  // Clear sensitive fields
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPassword').value = '';
   document.getElementById('rememberMe').checked = false;
-  document.getElementById('pwToggle').click(); // reset to masked
-  // Update UI with session info
+  document.getElementById('pwToggle').click();
   if (session && session.user) {
     document.getElementById('topbarUser').textContent = session.user;
     const initials = session.user.slice(0,2).toUpperCase();
@@ -960,7 +944,6 @@ function logout() {
   if (session && session.user) {
     enterAdmin(session);
   } else {
-    // Show login, pre-fill username hint (not password!)
     document.getElementById('loginUser').focus();
   }
 })();
@@ -1605,24 +1588,12 @@ async function changePassword() {
   if (!pw1 || !pw2) { toast('Fill in both fields.', 'error'); return; }
   if (pw1 !== pw2) { toast('Passwords do not match.', 'error'); return; }
   if (pw1.length < 8) { toast('Password must be at least 8 characters.', 'error'); return; }
-  // Recompute the hash with the new password
   const newHash = await sha256(_CRED.u + ':' + pw1);
-  // Persist to localStorage — the login check will read this first
   localStorage.setItem('arcdigital_admin_pw_hash', newHash);
   document.getElementById('newPw').value = '';
   document.getElementById('newPw2').value = '';
   toast('Password updated. Use it next time you sign in.');
 }
-
-/* Update attemptLogin to check the stored hash (if any) */
-const _origAttempt = attemptLogin;
-attemptLogin = async (username, password) => {
-  const combined = username + ':' + password;
-  const hash = await sha256(combined);
-  const storedHash = localStorage.getItem('arcdigital_admin_pw_hash');
-  const expected = storedHash || await sha256(_CRED.u + ':' + _CRED.p);
-  return hash === expected;
-};
 
 /* ───────── import / export / reset ───────── */
 function exportData() {
