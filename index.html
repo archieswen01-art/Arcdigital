@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArcDigital — Custom Software, Built in Liberia</title>
+  <meta name="description" content="I'm a developer in Liberia. I build custom management systems — schools, hospitals, HR, inventory, restaurants, churches, hotels and more. ArcDigital is my flagship. Call 0761 980 718." />
+  <meta name="theme-color" content="#1a1410" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ArcDigital — Custom Software, Built in Liberia" />
+  <meta property="og:description" content="Custom management systems for schools, clinics, shops, restaurants, churches and more. Full source code handover. Call 0761 980 718." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c',700:'#c2410c',800:'#9a3412',900:'#7c2d12' },
+            ink: { 900:'#1a1410', 800:'#241c16', 700:'#332720' },
+          },
+          fontFamily: {
+            sans: ['Inter','ui-sans-serif','system-ui','sans-serif'],
+            mono: ['JetBrains Mono','ui-monospace','monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --c1:#fdba74; --c2:#f97316; --c3:#c2410c; --r:249,115,22; --sy:0; }
+    html { scroll-padding-top: 88px; }
+    body { background:#1a1410; }
+
+    /* ───────── keyframes ───────── */
+    @keyframes float     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+    @keyframes breathe   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+    @keyframes spin      { to{transform:rotate(360deg)} }
+    @keyframes dash      { to{stroke-dashoffset:-56} }
+    @keyframes draw      { 0%{stroke-dashoffset:600} 55%,100%{stroke-dashoffset:0} }
+    @keyframes bar       { from{transform:scaleY(.25)} to{transform:scaleY(1)} }
+    @keyframes ping      { 0%{transform:scale(1);opacity:.8} 100%{transform:scale(2.3);opacity:0} }
+    @keyframes steam     { 0%{opacity:0;transform:translateY(10px)} 50%{opacity:.85} 100%{opacity:0;transform:translateY(-16px)} }
+    @keyframes blink     { 0%,40%{opacity:1} 50%,90%{opacity:.25} 100%{opacity:1} }
+    @keyframes marquee   { to{transform:translateX(-50%)} }
+    @keyframes shimmer   { to{background-position:200% 0} }
+    @keyframes gradMove  { to{background-position:200% center} }
+    @keyframes wordIn    { from{opacity:0;transform:translateY(70%) rotateX(-45deg);filter:blur(6px)} to{opacity:1;transform:none;filter:none} }
+    @keyframes slideIn   { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:none} }
+    @keyframes artIn     { from{opacity:0;transform:scale(.82) rotate(-5deg)} to{opacity:1;transform:none} }
+    @keyframes aurora    { 0%,100%{transform:translate3d(0,0,0) scale(1)} 33%{transform:translate3d(6%,5%,0) scale(1.12)} 66%{transform:translate3d(-5%,6%,0) scale(.94)} }
+    @keyframes dotFill   { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+    @keyframes tagPulse  { 0%{box-shadow:0 0 0 0 rgba(var(--r),.6)} 70%,100%{box-shadow:0 0 0 7px rgba(var(--r),0)} }
+    @keyframes callPulse { 0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,.5)} 50%{box-shadow:0 0 0 16px rgba(249,115,22,0)} }
+    @keyframes pop       { from{opacity:0;transform:translateY(14px) scale(.97)} to{opacity:1;transform:none} }
+    @keyframes barUp     { to{transform:scaleY(1)} }
+    @keyframes lineDraw  { to{stroke-dashoffset:0} }
+    @keyframes skel      { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+    /* ───────── base components ───────── */
+    .text-gradient { background:linear-gradient(110deg,#fdba74,#f97316,#fbbf24,#fdba74); background-size:200% auto; -webkit-background-clip:text; background-clip:text; color:transparent; animation:gradMove 7s linear infinite; }
+    .accent-g { background:linear-gradient(110deg,var(--c1),var(--c2),var(--c1)); background-size:200% auto; -webkit-background-clip:text; background-clip:text; color:transparent; animation:gradMove 6s linear infinite; }
+    .mesh { background: radial-gradient(1200px 600px at 10% 0%,rgba(249,115,22,.22),transparent 60%), radial-gradient(900px 500px at 90% 10%,rgba(234,88,12,.20),transparent 60%), radial-gradient(800px 600px at 50% 100%,rgba(251,191,36,.14),transparent 60%); }
+    .glass { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); }
+    .grid-bg { background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px); background-size:56px 56px; -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%); mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%); }
+    .shimmer-border { background:linear-gradient(90deg,#f97316,#fb923c,#fbbf24,#f97316); background-size:200% 100%; animation:shimmer 3s linear infinite; }
+    .tnum { font-variant-numeric:tabular-nums; }
+    .eyebrow { font-size:.75rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#fdba74; }
+    .h2 { margin-top:.6rem; font-size:clamp(1.65rem,4.2vw,3rem); font-weight:800; letter-spacing:-.02em; line-height:1.12; }
+    .lead { margin-top:1rem; color:#cbd5e1; font-size:1.05rem; line-height:1.65; }
+
+    .par { transform:translate3d(0,calc(var(--sy) * -.12px),0); will-change:transform; }
+    .aurora { border-radius:50%; filter:blur(80px); opacity:.35; animation:aurora 18s ease-in-out infinite; }
+    @media (max-width:640px){ .aurora{ filter:blur(50px); } }
+
+    .reveal { opacity:0; transform:translateY(28px); transition:opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+    .reveal.is-visible { opacity:1; transform:none; }
+    .pop { animation:pop .5s cubic-bezier(.2,.7,.2,1) both; }
+
+    /* cards: tilt + spotlight */
+    .tilt { transition:transform .25s ease-out, border-color .3s, box-shadow .3s; will-change:transform; }
+    .spot { position:relative; overflow:hidden; }
+    .spot::before { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:0; transition:opacity .3s; background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(var(--r,249,115,22),.16),transparent 45%); }
+    .spot:hover::before { opacity:1; }
+    .hoverglow:hover { border-color:rgba(var(--r),.55); box-shadow:0 22px 50px -26px rgba(var(--r),.7); }
+
+    /* buttons */
+    .btn { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border-radius:1rem; padding:.85rem 1.4rem; font-weight:600; font-size:.95rem; line-height:1.2; overflow:hidden; transition:transform .25s ease, box-shadow .3s, background .3s, filter .3s; -webkit-tap-highlight-color:transparent; }
+    .btn:active { transform:scale(.97); }
+    .btn-sm { padding:.6rem 1rem; font-size:.85rem; border-radius:.85rem; }
+    .btn-p { color:#fff; background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,0)),var(--c3); box-shadow:0 12px 30px -12px rgba(var(--r),.8), inset 0 1px 0 rgba(255,255,255,.25); }
+    .btn-p:hover { filter:brightness(1.1); box-shadow:0 16px 38px -10px rgba(var(--r),.95), inset 0 1px 0 rgba(255,255,255,.3); }
+    .btn-g { color:#f1f5f9; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
+    .btn-g:hover { background:rgba(255,255,255,.12); }
+    .shine::after { content:""; position:absolute; top:0; left:-70%; width:40%; height:100%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent); transform:skewX(-20deg); transition:left .8s ease; pointer-events:none; }
+    .shine:hover::after { left:140%; }
+    .navbtn { display:grid; place-items:center; height:2.5rem; width:2.5rem; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); color:#fff; transition:.25s; }
+    .navbtn:hover { background:var(--c3); border-color:var(--c3); transform:scale(1.06); }
+    .nav-on { color:#fff !important; background:rgba(255,255,255,.08); }
+    .soc { display:grid; place-items:center; height:2rem; width:2rem; border-radius:.5rem; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:#cbd5e1; transition:.25s; }
+    .soc:hover { background:var(--c3); border-color:var(--c3); color:#fff; transform:translateY(-2px); }
+    .fchip { padding:.5rem 1rem; border-radius:999px; font-size:.85rem; font-weight:600; color:#cbd5e1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); transition:.25s; }
+    .fchip:hover { background:rgba(255,255,255,.1); }
+    .fchip[aria-pressed="true"] { color:#fff; background:#c2410c; border-color:#fb923c; box-shadow:0 8px 24px -10px rgba(249,115,22,.8); }
+    .chip { font-size:.7rem; font-weight:700; padding:.3rem .65rem; border-radius:.6rem; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:#cbd5e1; }
+    .tagpill { display:inline-flex; align-items:center; gap:.5rem; border-radius:999px; padding:.25rem .75rem; font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--c1); background:rgba(var(--r),.14); border:1px solid rgba(var(--r),.35); }
+    .tagpill::before { content:""; height:6px; width:6px; border-radius:99px; background:var(--c1); animation:tagPulse 2s infinite; }
+
+    /* rotating headline word */
+    .rot { overflow:hidden; line-height:1.18; padding-bottom:.12em; perspective:600px; }
+    .word-in { display:inline-block; animation:wordIn .65s cubic-bezier(.2,.7,.2,1) both; }
+
+    /* slider */
+    .sl { touch-action:pan-y; }
+    .orb { position:absolute; border-radius:50%; filter:blur(70px); opacity:.28; background:var(--c2); transition:background-color 1s; pointer-events:none; }
+    .track { display:flex; transition:transform .8s cubic-bezier(.2,.7,.2,1); will-change:transform; }
+    .dragging .track { transition:none; }
+    .dragging { cursor:grabbing; }
+    .slide { flex:0 0 100%; min-width:0; }
+    .slide.active .stagger > * { animation:slideIn .7s cubic-bezier(.2,.7,.2,1) both; }
+    .slide.active .stagger > *:nth-child(2){ animation-delay:.07s } .slide.active .stagger > *:nth-child(3){ animation-delay:.14s }
+    .slide.active .stagger > *:nth-child(4){ animation-delay:.21s } .slide.active .stagger > *:nth-child(5){ animation-delay:.28s }
+    .slide.active .art { animation:artIn .9s cubic-bezier(.2,.7,.2,1) .1s both; }
+    .dotw { padding:10px 3px; }
+    .dot { display:block; position:relative; height:8px; width:8px; border-radius:999px; background:rgba(255,255,255,.18); overflow:hidden; transition:width .4s cubic-bezier(.2,.7,.2,1), background .3s; }
+    .dotw:hover .dot { background:rgba(255,255,255,.35); }
+    .dot.active { width:38px; }
+    .dot i { position:absolute; inset:0; background:var(--c2); transform-origin:left; transform:scaleX(0); }
+    .dot.active i { animation:dotFill var(--dur,8s) linear forwards; }
+    .paused .dot.active i { animation-play-state:paused; }
+    .noauto .dot.active i { animation:none; transform:none; }
+
+    /* svg art helpers */
+    .f1{fill:var(--c1)} .f2{fill:var(--c2)} .f3{fill:var(--c3)} .fn{fill:none} .s1{stroke:var(--c1)} .s2{stroke:var(--c2)}
+    .a-fl{animation:float 6s ease-in-out infinite} .a-fl2{animation:float 7s ease-in-out -2s infinite} .a-fl3{animation:float 5s ease-in-out -3.5s infinite}
+    .a-spin{transform-origin:200px 200px;animation:spin 46s linear infinite} .a-spinr{transform-origin:200px 200px;animation:spin 60s linear infinite reverse}
+    .a-dash{stroke-dasharray:6 8;animation:dash 1.4s linear infinite}
+    .a-draw{stroke-dasharray:600;stroke-dashoffset:600;animation:draw 3.8s ease-in-out infinite}
+    .a-bar{transform-box:fill-box;transform-origin:bottom;animation:bar 2.4s ease-in-out infinite alternate}
+    .a-ping{transform-box:fill-box;transform-origin:center;animation:ping 2.2s ease-out infinite}
+    .a-breathe{transform-box:fill-box;transform-origin:center;animation:breathe 4s ease-in-out infinite}
+    .a-pulse{transform-box:fill-box;transform-origin:center;animation:breathe 2.6s ease-in-out infinite}
+    .a-steam{animation:steam 3s ease-in-out infinite}
+    .a-blink{animation:blink 4s ease-in-out infinite}
+
+    /* marquee */
+    .marq-mask { -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent); mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent); }
+    .marq { display:flex; width:max-content; animation:marquee 48s linear infinite; }
+    .marq:hover { animation-play-state:paused; }
+    .marq > span { display:inline-flex; align-items:center; gap:.65rem; padding-right:2.5rem; white-space:nowrap; font-weight:600; color:#94a3b8; }
+    .marq > span::before { content:""; height:6px; width:6px; border-radius:99px; background:#f97316; }
+
+    /* demo mockup */
+    .mbar { transform-origin:bottom; transform:scaleY(.04); }
+    .is-visible .mbar { animation:barUp .9s cubic-bezier(.2,.7,.2,1) forwards; animation-delay:calc(var(--i) * 70ms + .3s); }
+    .mline { stroke-dasharray:400; stroke-dashoffset:400; }
+    .is-visible .mline { animation:lineDraw 2s .4s ease forwards; }
+    .skel { background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.14),rgba(255,255,255,.06)); background-size:200% 100%; animation:skel 2.2s linear infinite; border-radius:6px; }
+    .floaty { animation:float 6s ease-in-out infinite; }
+
+    /* chrome */
+    #progress { position:fixed; top:0; left:0; height:3px; width:100%; transform-origin:left; transform:scaleX(0); background:linear-gradient(90deg,#fdba74,#f97316,#fbbf24); z-index:60; }
+    #cursor { position:fixed; left:0; top:0; width:520px; height:520px; margin:-260px 0 0 -260px; border-radius:50%; pointer-events:none; z-index:1; background:radial-gradient(circle,rgba(249,115,22,.10),transparent 60%); opacity:0; transition:opacity .4s; mix-blend-mode:screen; }
+    .menu { display:grid; grid-template-rows:0fr; transition:grid-template-rows .35s ease; }
+    .menu.open { grid-template-rows:1fr; }
+    .fab { position:fixed; right:1rem; bottom:1rem; z-index:55; display:grid; place-items:center; height:3.5rem; width:3.5rem; border-radius:999px; background:#22c55e; color:#fff; box-shadow:0 12px 30px -8px rgba(34,197,94,.7); opacity:0; transform:translateY(16px) scale(.9); pointer-events:none; transition:.35s; }
+    .fab.show { opacity:1; transform:none; pointer-events:auto; }
+    .fab::after { content:""; position:absolute; inset:0; border-radius:inherit; border:2px solid #22c55e; animation:ping 2s ease-out infinite; }
+    .toast { position:fixed; left:50%; bottom:5.5rem; z-index:70; transform:translate(-50%,20px); opacity:0; padding:.6rem 1rem; border-radius:999px; font-size:.85rem; font-weight:600; background:#fff; color:#1a1410; box-shadow:0 12px 30px rgba(0,0,0,.4); transition:.3s; pointer-events:none; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior:auto !important; }
+      *, *::before, *::after { animation:none !important; transition:none !important; }
+      .reveal { opacity:1 !important; transform:none !important; }
+      .a-draw { stroke-dashoffset:0 !important; }
+      .mbar { transform:none !important; }
+      .mline { stroke-dashoffset:0 !important; }
+      .dot.active i { transform:none !important; }
+    }
+  </style>
+</head>
+
+<body class="bg-ink-900 text-slate-100 font-sans antialiased overflow-x-hidden selection:bg-brand-500/40 selection:text-white">
+
+  <div id="progress" aria-hidden="true"></div>
+  <div id="cursor" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- ══════════════ ICON SPRITE ══════════════ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-phone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></g></symbol>
+      <symbol id="i-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></symbol>
+      <symbol id="i-in" viewBox="0 0 24 24"><path fill="currentColor" d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0Z"/></symbol>
+      <symbol id="i-gh" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55v-2.1c-3.2.7-3.87-1.37-3.87-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.78 1.19 1.78 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18.92-.26 1.9-.38 2.88-.39.98 0 1.96.13 2.88.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.26 5.69.41.35.78 1.04.78 2.1v3.11c0 .3.21.66.8.55A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></symbol>
+      <symbol id="i-ig" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r="1.2" fill="currentColor"/></g></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></g></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></g></symbol>
+      <symbol id="i-ext" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></g></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></g></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></g></symbol>
+      <symbol id="i-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></g></symbol>
+      <symbol id="i-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></g></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></g></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></g></symbol>
+      <symbol id="i-cap" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></g></symbol>
+    </defs>
+  </svg>
+
+  <!-- ══════════════ NAVBAR ══════════════ -->
+  <header id="nav" class="fixed top-0 inset-x-0 z-50">
+    <div class="mx-auto max-w-7xl px-4 sm:px-5 lg:px-8">
+      <nav id="navbar" aria-label="Main" class="mt-3 sm:mt-4 flex items-center justify-between rounded-2xl px-3 sm:px-4 py-2.5 lg:px-6 lg:py-3 glass shadow-lg shadow-black/20 transition-all duration-300">
+        <a href="#top" class="flex items-center gap-2 shrink-0">
+          <span class="relative grid place-items-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/30 overflow-hidden">
+            <img src="LOGO_URL_HERE" alt="ArcDigital" class="h-full w-full object-contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+            <svg class="h-4 w-4 sm:h-5 sm:w-5 text-white absolute" style="display:none" aria-hidden="true"><use href="#i-cap"/></svg>
+          </span>
+          <span class="text-base sm:text-lg font-extrabold tracking-tight">Arc<span class="text-gradient">Digital</span></span>
+        </a>
+
+        <ul class="hidden lg:flex items-center gap-1 text-sm font-medium text-slate-300">
+          <li><a data-nav href="#catalog" class="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Projects</a></li>
+          <li><a data-nav href="#demo" class="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Live demo</a></li>
+          <li><a data-nav href="#services" class="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Services</a></li>
+          <li><a data-nav href="#about" class="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">About</a></li>
+          <li><a data-nav href="#team" class="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Team</a></li>
+          <li><a data-nav href="#process" class="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Process</a></li>
+          <li><a data-nav href="#contact" class="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Contact</a></li>
+        </ul>
+
+        <div class="flex items-center gap-2">
+          <a href="tel:0761980718" class="hidden sm:inline-flex items-center gap-2 rounded-xl px-3 lg:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-200 hover:text-white hover:bg-white/5 transition">
+            <svg class="h-4 w-4 text-brand-400" aria-hidden="true"><use href="#i-phone"/></svg>
+            <span class="hidden lg:inline">0761 980 718</span><span class="lg:hidden">Call</span>
+          </a>
+          <a href="#contact" class="group relative inline-flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white overflow-hidden">
+            <span class="absolute inset-0 shimmer-border rounded-xl opacity-90"></span>
+            <span class="absolute inset-[1.5px] rounded-[10px] bg-ink-900/85 group-hover:bg-ink-900/70 transition"></span>
+            <span class="relative flex items-center gap-1.5">Hire me <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 transition group-hover:translate-x-0.5" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+          </a>
+          <button id="menuBtn" class="lg:hidden grid place-items-center h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-white/5 transition" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+            <svg class="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true"><use href="#i-menu"/></svg>
+          </button>
+        </div>
+      </nav>
+
+      <div id="mobileMenu" class="menu lg:hidden" inert>
+        <div class="overflow-hidden">
+          <div class="mt-2 rounded-2xl glass p-3">
+            <a href="#catalog" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Projects</a>
+            <a href="#demo" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Live demo</a>
+            <a href="#services" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Services</a>
+            <a href="#about" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">About</a>
+            <a href="#team" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Team</a>
+            <a href="#process" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Process</a>
+            <a href="#contact" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Contact</a>
+            <a href="tel:0761980718" class="block mt-1 px-4 py-2.5 rounded-lg bg-brand-600 text-center font-semibold">📞 Call 0761 980 718</a>
+            <a href="tel:0888133667" class="block mt-1 px-4 py-2.5 rounded-lg glass text-center font-semibold">📞 Call 0888 133 667</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ══════════════ HERO + SHOWCASE SLIDER ══════════════ -->
+    <section class="relative overflow-hidden pt-28 sm:pt-32 pb-16 sm:pb-24">
+      <div class="pointer-events-none absolute inset-0 mesh"></div>
+      <div class="pointer-events-none absolute inset-0 grid-bg opacity-70"></div>
+      <div class="par pointer-events-none absolute -top-32 -left-28"><div class="aurora h-72 w-72 sm:h-[440px] sm:w-[440px] bg-brand-500/70"></div></div>
+      <div class="par pointer-events-none absolute top-24 -right-24"><div class="aurora h-64 w-64 sm:h-[380px] sm:w-[380px] bg-amber-500/60" style="animation-delay:-6s"></div></div>
+
+      <div class="relative mx-auto max-w-7xl px-4 sm:px-5 lg:px-8">
+        <div class="mx-auto max-w-4xl text-center">
+          <div class="reveal is-visible inline-flex items-center gap-2 rounded-full glass px-3.5 py-1.5 text-[11px] sm:text-xs font-medium text-slate-300">
+            <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" style="animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
+            Available for new projects · Liberia
+          </div>
+
+          <h1 class="mt-5 text-[2.5rem] sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05]">
+            <span class="block">Custom software for</span>
+            <span class="rot block"><span id="rotWord" class="word-in text-gradient">schools</span></span>
+            <span class="mt-2 block text-lg sm:text-2xl font-semibold text-slate-300 tracking-normal">built right here in Liberia.</span>
+          </h1>
+
+          <p class="mt-5 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            Ready-to-adapt systems for schools, clinics, shops, restaurants, churches and more. Full source code handed over. One phone call to get started.
+          </p>
+
+          <div class="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="http://arc123456.pythonanywhere.com/app" target="_blank" rel="noopener noreferrer" class="btn btn-p shine" data-magnetic>
+              Open live demo <svg class="h-4 w-4" aria-hidden="true"><use href="#i-ext"/></svg>
+            </a>
+            <a href="#catalog" class="btn btn-g">Browse all projects <svg class="h-4 w-4" aria-hidden="true"><use href="#i-down"/></svg></a>
+          </div>
+        </div>
+
+        <!-- Slider -->
+        <div id="showcase" class="mt-12 sm:mt-16">
+          <div id="slider" class="sl relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-sm cursor-grab select-none" style="--c2:#f97316;--r:249,115,22" role="region" aria-roledescription="carousel" aria-label="Project showcase">
+            <div class="orb -top-24 -left-24 h-72 w-72"></div>
+            <div class="orb -bottom-28 -right-20 h-80 w-80" style="opacity:.18"></div>
+            <div id="track" class="track relative"></div>
+          </div>
+
+          <div id="ctrl" class="mt-6 flex flex-col items-center gap-2">
+            <div class="flex items-center gap-2 sm:gap-3">
+              <button id="prevBtn" type="button" class="navbtn" aria-label="Previous project"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-left"/></svg></button>
+              <div id="dots" class="flex items-center"></div>
+              <button id="nextBtn" type="button" class="navbtn" aria-label="Next project"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-right"/></svg></button>
+            </div>
+            <div class="flex items-center gap-3 text-xs sm:text-sm text-slate-400">
+              <span id="slideCounter" class="font-mono">1 / 10</span>
+              <span class="h-1 w-1 rounded-full bg-slate-600"></span>
+              <span id="slideName">ArcDigital — School SMS</span>
+            </div>
+            <p class="text-[11px] sm:text-xs text-slate-500">Swipe, drag, or use the arrows</p>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="mt-10 sm:mt-14 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
+          <div class="reveal reveal-d"><div class="rounded-2xl glass p-4 text-center"><p class="text-2xl sm:text-3xl font-extrabold text-gradient tnum"><span data-count="10" data-suffix="+" id="statProducts">10+</span></p><p class="text-[10px] sm:text-xs text-slate-400 mt-1 uppercase tracking-wider">Product lines</p></div></div>
+          <div class="reveal" style="transition-delay:.08s"><div class="rounded-2xl glass p-4 text-center"><p class="text-2xl sm:text-3xl font-extrabold text-gradient tnum"><span data-count="100" data-suffix="+">100+</span></p><p class="text-[10px] sm:text-xs text-slate-400 mt-1 uppercase tracking-wider">Modules shipped</p></div></div>
+          <div class="reveal" style="transition-delay:.16s"><div class="rounded-2xl glass p-4 text-center"><p class="text-2xl sm:text-3xl font-extrabold text-gradient tnum"><span data-count="100" data-suffix="%">100%</span></p><p class="text-[10px] sm:text-xs text-slate-400 mt-1 uppercase tracking-wider">Source code yours</p></div></div>
+          <div class="reveal" style="transition-delay:.24s"><div class="rounded-2xl glass p-4 text-center"><p class="text-2xl sm:text-3xl font-extrabold text-gradient tnum"><span data-count="24" data-suffix="h">24h</span></p><p class="text-[10px] sm:text-xs text-slate-400 mt-1 uppercase tracking-wider">Response time</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ MARQUEE ══════════════ -->
+    <div class="border-y border-white/5 bg-ink-800/40 py-4 overflow-hidden marq-mask" aria-hidden="true">
+      <div id="marq" class="marq"></div>
+    </div>
+
+    <noscript><p class="p-6 text-center text-slate-300">Please enable JavaScript to browse the projects — or call 0761 980 718.</p></noscript>
+
+    <!-- ══════════════ CATALOG ══════════════ -->
+    <section id="catalog" class="relative py-16 sm:py-24 lg:py-28">
+      <div class="mx-auto max-w-7xl px-4 sm:px-5 lg:px-8">
+        <div class="max-w-2xl reveal mx-auto text-center">
+          <p class="eyebrow">Projects</p>
+          <h2 class="h2">Every product, <span class="text-gradient">one place.</span></h2>
+          <p class="lead">Pick one to preview, open the live project, or tell me how you'd change it. Every system is built to be adapted to you.</p>
+        </div>
+        <div id="filters" class="mt-8 flex flex-wrap items-center justify-center gap-2 reveal" role="group" aria-label="Filter projects"></div>
+        <div id="catalogGrid" class="mt-8 sm:mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
+      </div>
+    </section>
+
+    <!-- ══════════════ LIVE DEMO ══════════════ -->
+    <section id="demo" class="relative overflow-hidden border-y border-white/5 bg-ink-800/40 py-16 sm:py-24 lg:py-28">
+      <div class="par pointer-events-none absolute -bottom-24 -left-24"><div class="aurora h-72 w-72 bg-brand-500/50"></div></div>
+      <div class="relative mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-5 lg:grid-cols-2 lg:gap-16 lg:px-8">
+        <div class="reveal text-center lg:text-left">
+          <p class="eyebrow">Live demo</p>
+          <h2 class="h2">See it running — <span class="text-gradient">not just screenshots.</span></h2>
+          <p class="lead">Explore the working system in your browser. Open it on your phone or your laptop, click through the screens, and see how your school, clinic or business could run on it.</p>
+          <ul class="mt-6 space-y-2.5 text-sm sm:text-base text-slate-300 inline-block text-left">
+            <li class="flex items-center gap-3"><span class="grid h-6 w-6 place-items-center rounded-full bg-emerald-500/20 text-emerald-300"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg></span>Runs in the browser — nothing to install</li>
+            <li class="flex items-center gap-3"><span class="grid h-6 w-6 place-items-center rounded-full bg-emerald-500/20 text-emerald-300"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg></span>Works on a phone, tablet or computer</li>
+            <li class="flex items-center gap-3"><span class="grid h-6 w-6 place-items-center rounded-full bg-emerald-500/20 text-emerald-300"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-check"/></svg></span>Call me and I'll walk you through it</li>
+          </ul>
+          <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+            <a href="http://arc123456.pythonanywhere.com/app" target="_blank" rel="noopener noreferrer" class="btn btn-p shine" data-magnetic>Open live demo <svg class="h-4 w-4" aria-hidden="true"><use href="#i-ext"/></svg></a>
+            <button type="button" data-copy class="btn btn-g"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-copy"/></svg> Copy link</button>
+          </div>
+          <p class="mt-4 font-mono text-xs text-slate-500 break-all">arc123456.pythonanywhere.com/app</p>
+        </div>
+
+        <div class="reveal reveal-d relative" style="transition-delay:.15s">
+          <div class="tilt relative overflow-hidden rounded-2xl bg-ink-800 ring-1 ring-white/10 shadow-2xl shadow-black/50" data-tilt style="--r:249,115,22">
+            <div class="flex items-center gap-2 border-b border-white/5 bg-ink-700/80 px-4 py-3">
+              <span class="flex gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-rose-400/80"></i><i class="h-2.5 w-2.5 rounded-full bg-amber-400/80"></i><i class="h-2.5 w-2.5 rounded-full bg-emerald-400/80"></i></span>
+              <div class="mx-auto min-w-0 max-w-xs flex-1 truncate rounded-lg bg-black/30 px-3 py-1 font-mono text-[11px] text-slate-400">arc123456.pythonanywhere.com/app</div>
+            </div>
+            <div class="grid min-h-[300px] grid-cols-1 sm:grid-cols-[150px_1fr]">
+              <aside class="hidden space-y-1 border-r border-white/5 p-3 text-xs sm:block">
+                <div class="mb-3 flex items-center gap-2 px-2 py-1.5"><span class="h-5 w-5 rounded-md bg-brand-500"></span><b class="text-slate-200">ArcDigital</b></div>
+                <div class="rounded-lg bg-brand-500/15 px-2 py-1.5 text-brand-200">Dashboard</div>
+                <div class="px-2 py-1.5 text-slate-400">Enrolment</div>
+                <div class="px-2 py-1.5 text-slate-400">Fees</div>
+                <div class="px-2 py-1.5 text-slate-400">Results</div>
+                <div class="px-2 py-1.5 text-slate-400">Attendance</div>
+                <div class="px-2 py-1.5 text-slate-400">Timetable</div>
+              </aside>
+              <div class="p-4">
+                <div class="flex items-center justify-between"><p class="text-sm font-bold text-slate-100">Overview</p><span class="grid h-7 w-7 place-items-center rounded-full bg-brand-600 text-[10px] font-bold">AD</span></div>
+                <div class="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
+                  <div class="rounded-xl bg-white/5 p-3"><p class="text-[10px] text-slate-400">Students</p><p class="mt-1 text-lg font-extrabold tnum sm:text-xl"><span data-count="1248">1,248</span></p><p class="text-[10px] text-emerald-400">▲ enrolled</p></div>
+                  <div class="rounded-xl bg-white/5 p-3"><p class="text-[10px] text-slate-400">Fees paid</p><p class="mt-1 text-lg font-extrabold tnum sm:text-xl"><span data-count="86" data-suffix="%">86%</span></p><p class="text-[10px] text-emerald-400">▲ this term</p></div>
+                  <div class="rounded-xl bg-white/5 p-3"><p class="text-[10px] text-slate-400">Attendance</p><p class="mt-1 text-lg font-extrabold tnum sm:text-xl"><span data-count="94" data-suffix="%">94%</span></p><p class="text-[10px] text-sky-400">● today</p></div>
+                </div>
+                <div class="mt-3 rounded-xl bg-white/5 p-3">
+                  <div class="flex h-24 items-end gap-2">
+                    <div class="mbar flex-1 rounded-t-md bg-gradient-to-t from-brand-700 to-brand-300" style="--i:0;height:38%"></div>
+                    <div class="mbar flex-1 rounded-t-md bg-gradient-to-t from-brand-700 to-brand-300" style="--i:1;height:55%"></div>
+                    <div class="mbar flex-1 rounded-t-md bg-gradient-to-t from-brand-700 to-brand-300" style="--i:2;height:44%"></div>
+                    <div class="mbar flex-1 rounded-t-md bg-gradient-to-t from-brand-700 to-brand-300" style="--i:3;height:70%"></div>
+                    <div class="mbar flex-1 rounded-t-md bg-gradient-to-t from-brand-700 to-brand-300" style="--i:4;height:62%"></div>
+                    <div class="mbar flex-1 rounded-t-md bg-gradient-to-t from-brand-700 to-brand-300" style="--i:5;height:86%"></div>
+                    <div class="mbar flex-1 rounded-t-md bg-gradient-to-t from-brand-700 to-brand-300" style="--i:6;height:74%"></div>
+                  </div>
+                </div>
+                <div class="mt-3 space-y-2">
+                  <div class="flex items-center gap-3 rounded-xl bg-white/5 p-2.5"><span class="h-7 w-7 shrink-0 rounded-full bg-sky-500/70"></span><div class="flex-1 space-y-1.5"><div class="skel h-2 w-2/3"></div><div class="skel h-2 w-1/3"></div></div><span class="skel h-5 w-12"></span></div>
+                  <div class="flex items-center gap-3 rounded-xl bg-white/5 p-2.5"><span class="h-7 w-7 shrink-0 rounded-full bg-emerald-500/70"></span><div class="flex-1 space-y-1.5"><div class="skel h-2 w-1/2"></div><div class="skel h-2 w-2/5"></div></div><span class="skel h-5 w-12"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="floaty absolute -right-1 -top-4 flex items-center gap-2 rounded-xl glass px-3 py-2 text-xs font-semibold shadow-xl sm:-right-4"><span class="grid h-5 w-5 place-items-center rounded-full bg-emerald-500"><svg class="h-3 w-3" aria-hidden="true"><use href="#i-check"/></svg></span>Fee payment recorded</div>
+          <div class="floaty absolute -bottom-4 -left-1 flex items-center gap-2 rounded-xl glass px-3 py-2 text-xs font-semibold shadow-xl sm:-left-4" style="animation-delay:-2.5s"><span class="grid h-5 w-5 place-items-center rounded-full bg-brand-500 text-[10px]">AI</span>Quiz graded instantly</div>
+          <p class="mt-8 text-center text-[11px] text-slate-500">Illustrative layout with sample numbers — open the live demo for the real thing.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ SERVICES ══════════════ -->
+    <section id="services" class="relative py-16 sm:py-24 lg:py-28">
+      <div class="mx-auto max-w-7xl px-4 sm:px-5 lg:px-8">
+        <div class="max-w-2xl reveal mx-auto text-center">
+          <p class="eyebrow">What I build</p>
+          <h2 class="h2">Not just schools — <span class="text-gradient">any web system you need.</span></h2>
+          <p class="lead">School management is my flagship, but I also build hospital systems, HR tools, inventory and POS, member registries, rent and hotel management, and any web idea that fits what you do.</p>
+        </div>
+        <div id="svc" class="mt-10 sm:mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5"></div>
+      </div>
+    </section>
+
+    <!-- ══════════════ ABOUT ══════════════ -->
+    <section id="about" class="relative overflow-hidden border-y border-white/5 bg-ink-800/40 py-16 sm:py-24 lg:py-28">
+      <div class="pointer-events-none absolute inset-0 grid-bg opacity-40"></div>
+      <div class="par pointer-events-none absolute -top-32 right-0"><div class="aurora h-64 w-64 bg-brand-500/50"></div></div>
+
+      <div class="relative mx-auto max-w-7xl px-4 sm:px-5 lg:px-8">
+        <div class="max-w-2xl reveal mx-auto text-center">
+          <p class="eyebrow">About</p>
+          <h2 class="h2">One developer, <span class="text-gradient">a small team,</span> a lot of shipped software.</h2>
+          <p class="lead">We're a small studio based in Liberia building the software that schools, clinics, shops and community groups actually need — no bloat, no seat licenses, no vendor lock-in.</p>
+        </div>
+
+        <div class="mt-12 sm:mt-16 grid lg:grid-cols-5 gap-8 lg:gap-12 items-center">
+          <div class="lg:col-span-3 reveal">
+            <div class="space-y-4 sm:space-y-5 text-slate-300 text-sm sm:text-base leading-relaxed">
+              <p><strong class="text-white">ArcDigital started with a simple frustration.</strong> Schools were running on spreadsheets, paper registers and WhatsApp groups — losing track of fees, grades, and students who needed help. The software available was either too expensive, too generic, or built for a country that wasn't ours.</p>
+              <p>So we built our own. ArcDigital now powers 32 modules across schools in Liberia — enrolment, fees, results, attendance, ID cards, timetables, AI-graded quizzes, transcripts, elections, chat. Real working software, used daily.</p>
+              <p>From there we applied the same principles to other industries: <strong class="text-white">a hospital system for a clinic that had no way to track patients</strong>. <strong class="text-white">An HR tool for a business drowning in paperwork</strong>. <strong class="text-white">A POS for a restaurant that lost money every time the till ran out of receipt paper</strong>. Every product line in this portfolio exists because someone needed it.</p>
+              <p>We ship the full source code. We deploy on infrastructure you can afford. We stay available after launch. That's the whole promise.</p>
+            </div>
+
+            <div class="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div class="rounded-2xl glass p-4 sm:p-5"><span class="grid place-items-center h-9 w-9 rounded-xl bg-brand-500/15 text-brand-300 ring-1 ring-brand-400/20 mb-3"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-cap"/></svg></span><h3 class="text-sm font-bold text-white">Built for here</h3><p class="mt-1 text-xs text-slate-400 leading-relaxed">Designed for Liberian schools, clinics and shops — not Silicon Valley.</p></div>
+              <div class="rounded-2xl glass p-4 sm:p-5"><span class="grid place-items-center h-9 w-9 rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20 mb-3"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-check"/></svg></span><h3 class="text-sm font-bold text-white">You own the code</h3><p class="mt-1 text-xs text-slate-400 leading-relaxed">Full source handover at launch. No lock-in, no license traps.</p></div>
+              <div class="rounded-2xl glass p-4 sm:p-5"><span class="grid place-items-center h-9 w-9 rounded-xl bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/20 mb-3"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span><h3 class="text-sm font-bold text-white">Fast &amp; honest</h3><p class="mt-1 text-xs text-slate-400 leading-relaxed">Fixed quote, fixed timeline, one call to reach me.</p></div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 reveal" style="transition-delay:.15s">
+            <div class="tilt spot relative rounded-3xl ring-1 ring-white/10 bg-gradient-to-br from-brand-600/20 via-brand-700/10 to-ink-900 p-6 sm:p-8" data-tilt>
+              <div class="pointer-events-none absolute -top-8 -right-8 h-32 w-32 rounded-full border-2 border-brand-400/30" style="animation:ping 2.4s ease-out infinite"></div>
+              <div class="relative flex items-center justify-center mb-6">
+                <img src="image/img.png" alt="Founder" class="h-32 w-32 sm:h-40 sm:w-40 rounded-full object-cover border-4 border-brand-400/40 shadow-2xl shadow-brand-600/30 bg-gradient-to-br from-brand-600 to-brand-800" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'" />
+                <div class="h-32 w-32 sm:h-40 sm:w-40 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 border-4 border-brand-400/40 place-items-center text-4xl font-black text-white" style="display:none">AD</div>
+              </div>
+              <div class="relative text-center">
+                <h3 class="text-lg sm:text-xl font-extrabold text-white">Founder &amp; Lead Developer</h3>
+                <p class="mt-1 text-xs sm:text-sm text-brand-300 font-semibold">ArcDigital · Monrovia, Liberia</p>
+                <p class="mt-4 text-xs sm:text-sm text-slate-300 leading-relaxed italic">"I build software I wish existed when I was helping a school without it. Every module in ArcDigital exists because someone needed it."</p>
+                <div class="mt-5 flex items-center justify-center gap-2">
+                  <a href="tel:0761980718" class="btn btn-p btn-sm"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-phone"/></svg>Call</a>
+                  <a href="https://wa.me/231761980718?text=Hi%2C%20I%20saw%20your%20About%20page" target="_blank" rel="noopener" class="btn btn-g btn-sm"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-wa"/></svg>WhatsApp</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-14 sm:mt-20">
+          <h3 class="text-center text-xs sm:text-sm font-bold text-brand-300 uppercase tracking-widest mb-8 reveal">How we got here</h3>
+          <div class="relative">
+            <div class="absolute left-4 sm:left-0 top-0 bottom-0 w-px sm:w-full sm:h-px sm:top-4 bg-gradient-to-b sm:bg-gradient-to-r from-transparent via-brand-400/40 to-transparent"></div>
+            <div class="grid sm:grid-cols-4 gap-8 sm:gap-4 relative">
+              <div class="reveal pl-12 sm:pl-0 sm:pt-14 relative"><span class="absolute left-0 top-1 sm:top-0 grid place-items-center h-8 w-8 rounded-full bg-brand-500 text-white font-extrabold text-xs shadow-lg shadow-brand-600/40">1</span><p class="text-xs uppercase tracking-wider text-brand-300 font-bold">2022</p><h4 class="mt-1 text-sm sm:text-base font-bold text-white">First school</h4><p class="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">Built ArcDigital for one school. 3 modules. Zero budget. Worked perfectly.</p></div>
+              <div class="reveal pl-12 sm:pl-0 sm:pt-14 relative" style="transition-delay:.1s"><span class="absolute left-0 top-1 sm:top-0 grid place-items-center h-8 w-8 rounded-full bg-amber-500 text-white font-extrabold text-xs shadow-lg shadow-amber-600/40">2</span><p class="text-xs uppercase tracking-wider text-amber-300 font-bold">2023</p><h4 class="mt-1 text-sm sm:text-base font-bold text-white">Full platform</h4><p class="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">Grew to 32 modules. Added fees, attendance, timetables, ID cards, transcripts.</p></div>
+              <div class="reveal pl-12 sm:pl-0 sm:pt-14 relative" style="transition-delay:.2s"><span class="absolute left-0 top-1 sm:top-0 grid place-items-center h-8 w-8 rounded-full bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/40">3</span><p class="text-xs uppercase tracking-wider text-emerald-300 font-bold">2024</p><h4 class="mt-1 text-sm sm:text-base font-bold text-white">Beyond schools</h4><p class="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">Hospital, HR, inventory, restaurant, and church products added.</p></div>
+              <div class="reveal pl-12 sm:pl-0 sm:pt-14 relative" style="transition-delay:.3s"><span class="absolute left-0 top-1 sm:top-0 grid place-items-center h-8 w-8 rounded-full bg-sky-500 text-white font-extrabold text-xs shadow-lg shadow-sky-600/40">4</span><p class="text-xs uppercase tracking-wider text-sky-300 font-bold">Today</p><h4 class="mt-1 text-sm sm:text-base font-bold text-white">Your idea next</h4><p class="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">Small team, still hands-on. Every project gets the same care.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ TEAM ══════════════ -->
+    <section id="team" class="relative py-16 sm:py-24 lg:py-28">
+      <div class="par pointer-events-none absolute -top-24 left-0"><div class="aurora h-64 w-64 bg-amber-500/40"></div></div>
+      <div class="relative mx-auto max-w-7xl px-4 sm:px-5 lg:px-8">
+        <div class="max-w-2xl reveal mx-auto text-center">
+          <p class="eyebrow">The team</p>
+          <h2 class="h2">Small team. <span class="text-gradient">Real people.</span> Ships fast.</h2>
+          <p class="lead">Five people. That's the whole company. You talk directly to the person building your software — no account managers, no middlemen.</p>
+        </div>
+        <div id="teamGrid" class="mt-12 sm:mt-16 grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6"></div>
+        <div class="mt-12 sm:mt-16 text-center reveal">
+          <p class="text-xs sm:text-sm text-slate-400">Prefer email?&nbsp;<a href="mailto:hello@arcdigital.app" class="text-brand-300 hover:text-brand-200 underline underline-offset-4 font-semibold">hello@arcdigital.app</a></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ PROCESS ══════════════ -->
+    <section id="process" class="relative border-y border-white/5 bg-ink-800/40 py-16 sm:py-24 lg:py-28">
+      <div class="mx-auto max-w-7xl px-4 sm:px-5 lg:px-8">
+        <div class="max-w-2xl reveal mx-auto text-center">
+          <p class="eyebrow">How we work</p>
+          <h2 class="h2">From a call to <span class="text-gradient">a live system.</span></h2>
+          <p class="lead">Simple, honest, no surprises.</p>
+        </div>
+        <div class="relative mt-10 sm:mt-14">
+          <svg class="pointer-events-none absolute left-[12%] right-[12%] top-[2.6rem] hidden h-2 w-[76%] lg:block" preserveAspectRatio="none" viewBox="0 0 100 2" aria-hidden="true"><path d="M0 1H100" stroke="#fb923c" stroke-opacity=".45" stroke-width="1.5" stroke-dasharray="3 5" fill="none" vector-effect="non-scaling-stroke" class="a-dash"/></svg>
+          <div class="relative grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <div class="reveal"><article class="tilt spot hoverglow h-full rounded-2xl glass p-5 sm:p-6" data-tilt style="--r:249,115,22"><span class="grid place-items-center h-11 sm:h-12 w-11 sm:w-12 rounded-2xl bg-brand-500 text-white font-extrabold text-lg shadow-lg shadow-brand-600/30">1</span><h3 class="mt-4 text-base sm:text-lg font-bold">Call or WhatsApp</h3><p class="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed">Tell me what you need. One call is usually enough to scope it out.</p></article></div>
+            <div class="reveal" style="transition-delay:.1s"><article class="tilt spot hoverglow h-full rounded-2xl glass p-5 sm:p-6" data-tilt style="--r:245,158,11"><span class="grid place-items-center h-11 sm:h-12 w-11 sm:w-12 rounded-2xl bg-amber-500 text-white font-extrabold text-lg shadow-lg shadow-amber-600/30">2</span><h3 class="mt-4 text-base sm:text-lg font-bold">Fixed quote</h3><p class="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed">You get one number, one timeline. No hidden costs, no scope creep.</p></article></div>
+            <div class="reveal" style="transition-delay:.2s"><article class="tilt spot hoverglow h-full rounded-2xl glass p-5 sm:p-6" data-tilt style="--r:16,185,129"><span class="grid place-items-center h-11 sm:h-12 w-11 sm:w-12 rounded-2xl bg-emerald-500 text-white font-extrabold text-lg shadow-lg shadow-emerald-600/30">3</span><h3 class="mt-4 text-base sm:text-lg font-bold">Build &amp; demo</h3><p class="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed">I send you a live staging link. You click around, we adjust together.</p></article></div>
+            <div class="reveal" style="transition-delay:.3s"><article class="tilt spot hoverglow h-full rounded-2xl glass p-5 sm:p-6" data-tilt style="--r:14,165,233"><span class="grid place-items-center h-11 sm:h-12 w-11 sm:w-12 rounded-2xl bg-sky-500 text-white font-extrabold text-lg shadow-lg shadow-sky-600/30">4</span><h3 class="mt-4 text-base sm:text-lg font-bold">Launch &amp; hand-off</h3><p class="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed">I deploy it, hand over the full source code, and walk you through admin controls.</p></article></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ CONTACT ══════════════ -->
+    <section id="contact" class="relative overflow-hidden py-16 sm:py-24 lg:py-28">
+      <div class="absolute inset-0 mesh opacity-70"></div>
+      <div class="absolute inset-0 grid-bg opacity-40"></div>
+      <div class="relative mx-auto max-w-5xl px-4 sm:px-5 lg:px-8">
+        <div class="text-center reveal">
+          <p class="eyebrow">Talk to me</p>
+          <h2 class="h2">One call is all it takes <span class="text-gradient">to get started.</span></h2>
+          <p class="lead max-w-2xl mx-auto">No forms. No waiting. Call or message me directly on WhatsApp and I'll tell you honestly whether I can build it.</p>
+        </div>
+
+        <div class="mt-10 sm:mt-14 grid sm:grid-cols-2 gap-5 sm:gap-6">
+          <div class="reveal">
+            <div class="tilt spot hoverglow relative h-full rounded-3xl ring-1 ring-brand-400/30 bg-gradient-to-br from-brand-600/20 via-brand-700/10 to-ink-900 p-6 sm:p-8" data-tilt style="--r:249,115,22">
+              <span class="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full border-2 border-brand-400/40" style="animation:ping 2.4s ease-out infinite"></span>
+              <div class="relative flex items-start justify-between gap-4">
+                <div><p class="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-brand-300 font-bold">Primary line</p><h3 class="mt-2 text-xl sm:text-2xl font-extrabold text-white">0761 980 718</h3><p class="mt-1 text-xs sm:text-sm text-slate-300">Mon–Sat · 8:00 AM – 8:00 PM</p></div>
+                <span class="a-fl2 grid place-items-center h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-brand-500 text-white shadow-lg shadow-brand-600/40"><svg class="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true"><use href="#i-phone"/></svg></span>
+              </div>
+              <div class="relative mt-6 grid grid-cols-2 gap-3">
+                <a href="tel:0761980718" class="btn btn-p" style="animation:callPulse 2.4s ease-in-out infinite"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-phone"/></svg>Call</a>
+                <a href="https://wa.me/231761980718?text=Hi%2C%20I%27m%20interested%20in%20your%20software" target="_blank" rel="noopener" class="btn text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/40"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-wa"/></svg>WhatsApp</a>
+              </div>
+              <div class="relative mt-6 flex items-center gap-3 rounded-2xl bg-black/20 border border-white/10 p-3">
+                <span class="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-brand-400/50 bg-brand-700/60 text-brand-200"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-user"/></svg><img src="PHOTO_URL_1" alt="Contact person 1" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()" /></span>
+                <div class="min-w-0"><p class="text-[10px] uppercase tracking-wider text-brand-300 font-bold">Speak to</p><p class="text-sm font-bold text-white truncate">ArcDigital Developer</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="reveal" style="transition-delay:.12s">
+            <div class="tilt spot hoverglow relative h-full rounded-3xl ring-1 ring-amber-400/30 bg-gradient-to-br from-amber-600/20 via-amber-700/10 to-ink-900 p-6 sm:p-8" data-tilt style="--r:245,158,11">
+              <span class="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full border-2 border-amber-400/40" style="animation:ping 2.4s ease-out 1.2s infinite"></span>
+              <div class="relative flex items-start justify-between gap-4">
+                <div><p class="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-amber-300 font-bold">Secondary line</p><h3 class="mt-2 text-xl sm:text-2xl font-extrabold text-white">0888 133 667</h3><p class="mt-1 text-xs sm:text-sm text-slate-300">Mon–Sat · 8:00 AM – 8:00 PM</p></div>
+                <span class="a-fl3 grid place-items-center h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-600/40"><svg class="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true"><use href="#i-phone"/></svg></span>
+              </div>
+              <div class="relative mt-6 grid grid-cols-2 gap-3">
+                <a href="tel:0888133667" class="btn text-white bg-amber-600 hover:bg-amber-500 shadow-lg shadow-amber-600/40"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-phone"/></svg>Call</a>
+                <a href="https://wa.me/231888133667?text=Hi%2C%20I%27m%20interested%20in%20your%20software" target="_blank" rel="noopener" class="btn text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/40"><svg class="h-4 w-4" aria-hidden="true"><use href="#i-wa"/></svg>WhatsApp</a>
+              </div>
+              <div class="relative mt-6 flex items-center gap-3 rounded-2xl bg-black/20 border border-white/10 p-3">
+                <span class="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-amber-400/50 bg-amber-700/60 text-amber-200"><svg class="h-5 w-5" aria-hidden="true"><use href="#i-user"/></svg><img src="PHOTO_URL_2" alt="Contact person 2" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()" /></span>
+                <div class="min-w-0"><p class="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Speak to</p><p class="text-sm font-bold text-white truncate">ArcDigital Developer</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 sm:mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs sm:text-sm text-slate-400 reveal">
+          <span class="inline-flex items-center gap-2"><svg class="h-4 w-4 text-emerald-400" aria-hidden="true"><use href="#i-check"/></svg>Free consultation</span>
+          <span class="inline-flex items-center gap-2"><svg class="h-4 w-4 text-emerald-400" aria-hidden="true"><use href="#i-check"/></svg>Fixed pricing</span>
+          <span class="inline-flex items-center gap-2"><svg class="h-4 w-4 text-emerald-400" aria-hidden="true"><use href="#i-check"/></svg>Full source code handover</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════ FOOTER ══════════════ -->
+  <footer class="border-t border-white/5 bg-ink-800/60">
+    <div class="mx-auto max-w-7xl px-4 sm:px-5 lg:px-8 py-10 sm:py-14">
+      <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10">
+        <div class="sm:col-span-2 md:col-span-1">
+          <a href="#top" class="flex items-center gap-2.5">
+            <span class="relative grid place-items-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 overflow-hidden">
+              <img src="LOGO_URL_HERE" alt="ArcDigital" class="h-full w-full object-contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+              <svg class="h-5 w-5 text-white absolute" style="display:none" aria-hidden="true"><use href="#i-cap"/></svg>
+            </span>
+            <span class="text-lg font-extrabold tracking-tight">Arc<span class="text-gradient">Digital</span></span>
+          </a>
+          <p class="mt-4 text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xs">Custom software built by a developer in Liberia. Ten product lines, one team, any idea welcome.</p>
+        </div>
+        <div>
+          <p class="text-xs sm:text-sm font-semibold text-slate-200">Projects</p>
+          <ul id="footProjects" class="mt-3 space-y-2 text-xs sm:text-sm text-slate-400"></ul>
+        </div>
+        <div>
+          <p class="text-xs sm:text-sm font-semibold text-slate-200">More</p>
+          <ul class="mt-3 space-y-2 text-xs sm:text-sm text-slate-400">
+            <li><a href="http://arc123456.pythonanywhere.com/app" target="_blank" rel="noopener noreferrer" class="hover:text-white transition">Live demo ↗</a></li>
+            <li><a href="#about" class="hover:text-white transition">About</a></li>
+            <li><a href="#team" class="hover:text-white transition">Team</a></li>
+            <li><a href="#services" class="hover:text-white transition">Services</a></li>
+            <li><a href="#process" class="hover:text-white transition">Process</a></li>
+            <li><a href="#contact" class="hover:text-white transition">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-xs sm:text-sm font-semibold text-slate-200">Get in touch</p>
+          <ul class="mt-3 space-y-3 text-xs sm:text-sm text-slate-400">
+            <li><a href="tel:0761980718" class="inline-flex items-center gap-2 hover:text-white transition"><svg class="h-4 w-4 text-brand-400 shrink-0" aria-hidden="true"><use href="#i-phone"/></svg>0761 980 718</a></li>
+            <li><a href="tel:0888133667" class="inline-flex items-center gap-2 hover:text-white transition"><svg class="h-4 w-4 text-amber-400 shrink-0" aria-hidden="true"><use href="#i-phone"/></svg>0888 133 667</a></li>
+            <li><a href="mailto:hello@arcdigital.app" class="hover:text-white transition">hello@arcdigital.app</a></li>
+            <li class="pt-1">Mon–Sat · 8:00–20:00</li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-10 sm:mt-12 pt-5 sm:pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500 text-center sm:text-left">
+        <p>© <span id="year"></span> ArcDigital. Built by a developer in Liberia.</p>
+        <p>Any web idea welcome. Let's build yours.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a id="fab" class="fab" href="https://wa.me/231761980718?text=Hi%2C%20I%27m%20interested%20in%20your%20software" target="_blank" rel="noopener" aria-label="Chat on WhatsApp"><svg class="h-7 w-7" aria-hidden="true"><use href="#i-wa"/></svg></a>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════════
+     CONFIG — edit here
+     • DEMO_URL is used by every "View project" button by default.
+     • To give a project its own link, add  link:'https://…'  to its entry below.
+     ═══════════════════════════════════════════════════════════════ */
+  const DEMO_URL = 'http://arc123456.pythonanywhere.com/app';
+
+  const PROJECTS = [
+    { id:'school',     name:'Arc',    accent:'Digital', sub:'School SMS',            tag:'Flagship product',   cat:'Education', pal:['#fdba74','#f97316','#c2410c'], chips:['32 modules','4 roles','AI grading','18 themes'],
+      desc:'The complete school management platform. Enrolment, fees, results, attendance, timetables, ID cards, transcripts, AI-graded quizzes — 32 modules, 4 roles, one system.' },
+    { id:'hospital',   name:'Medi',   accent:'Core',    sub:'Hospital MS',           tag:'Healthcare',         cat:'Health',    pal:['#6ee7b7','#10b981','#047857'], chips:['Patients','Appointments','Pharmacy','Billing'],
+      desc:'Patient records, appointments, prescriptions, lab results, billing and staff scheduling — everything a clinic or hospital needs to run calm, safe and paperless.' },
+    { id:'hr',         name:'People', accent:'Hub',     sub:'HR System',             tag:'Human resources',    cat:'Business',  pal:['#7dd3fc','#0ea5e9','#0369a1'], chips:['Staff records','Payroll','Leave','Reviews'],
+      desc:'Employee records, attendance, leave, payroll, performance reviews and recruitment. Built for growing companies that have outgrown spreadsheets.' },
+    { id:'inventory',  name:'Stock',  accent:'Flow',    sub:'Inventory + POS',       tag:'Retail & inventory', cat:'Business',  pal:['#c4b5fd','#8b5cf6','#6d28d9'], chips:['Stock','POS','Receipts','Reports'],
+      desc:"Track stock across multiple locations, ring up sales at the counter, print receipts, and see what's selling — all from one dashboard." },
+    { id:'restaurant', name:'Order',  accent:'Up',      sub:'Restaurant POS',        tag:'Food & hospitality', cat:'Business',  pal:['#fda4af','#f43f5e','#be123c'], chips:['Tables','Kitchen','Bills','Reports'],
+      desc:'Table-side ordering, kitchen tickets, menu management, split bills and daily sales reports. For restaurants that move fast and hate mistakes.' },
+    { id:'church',     name:'Congre', accent:'gate',    sub:'Church & Chama',        tag:'Community & faith',  cat:'Community', pal:['#fcd34d','#f59e0b','#b45309'], chips:['Members','Contributions','Welfare','Events'],
+      desc:'Member registry, contributions and tithes, attendance at services, events, welfare (chama) balances — for churches, mosques and community saving groups.' },
+    { id:'property',   name:'Home',   accent:'Base',    sub:'Property & Rent',       tag:'Real estate',        cat:'Property',  pal:['#5eead4','#14b8a6','#0f766e'], chips:['Tenants','Rent','Receipts','Maintenance'],
+      desc:'Tenants, leases, rent collection, receipts and maintenance requests — know who has paid and who has not, at a glance, with clean reports for landlords.' },
+    { id:'hotel',      name:'Stay',   accent:'Ease',    sub:'Hotel & Guest House',   tag:'Hospitality',        cat:'Business',  pal:['#f0abfc','#d946ef','#a21caf'], chips:['Bookings','Rooms','Invoices','Occupancy'],
+      desc:'Room bookings, check-in and check-out, housekeeping, invoices and occupancy reports. Fewer double-bookings, happier guests.' },
+    { id:'savings',    name:'Cash',   accent:'Circle',  sub:'Savings & Susu',        tag:'Savings groups',     cat:'Community', pal:['#bef264','#84cc16','#4d7c0f'], chips:['Savings','Loans','Payouts','Statements'],
+      desc:'Member savings, rotating payouts, loans with repayment schedules and clean statements — for susu clubs, village savings groups and small lenders.' },
+    { id:'build',      name:'Build',  accent:'Cost',    sub:'Construction Estimator',tag:'Construction',       cat:'Property',  pal:['#93c5fd','#3b82f6','#1d4ed8'], chips:['USD & LRD','PDF reports','Excel export','Foundation · Roofing'],
+      desc:'Estimate foundations, walls and roofing in USD or LRD, then print a clean client report or export the full breakdown to Excel.' },
+  ].map(p => ({ link: DEMO_URL, c1:p.pal[0], c2:p.pal[1], c3:p.pal[2], ...p }));
+
+  const TEAM = [
+    { role:'Founder', title:'Founder & Lead Developer', name:'[Your Name]',   init:'AD', photo:'TEAM_PHOTO_1', pal:['#fdba74','#f97316','#c2410c'], bio:'Architect of ArcDigital. Writes the backend, ships the frontend, answers the phone. Started this to fix a problem he kept seeing in Liberian schools.', links:[['phone','tel:0761980718','Call'],['wa','https://wa.me/231761980718','WhatsApp'],['in','#','LinkedIn'],['gh','#','GitHub']] },
+    { role:'Design',  title:'Lead Designer',            name:'[Team Member]', init:'DS', photo:'TEAM_PHOTO_2', pal:['#f0abfc','#d946ef','#a21caf'], bio:'Draws the interfaces you actually enjoy using. Turns messy admin requirements into clean screens — dark mode included, obviously.', links:[['phone','tel:0888133667','Call'],['ig','#','Instagram'],['in','#','LinkedIn']] },
+    { role:'Backend', title:'Backend Engineer',         name:'[Team Member]', init:'BE', photo:'TEAM_PHOTO_3', pal:['#7dd3fc','#0ea5e9','#0369a1'], bio:'Keeps the database fast and the APIs honest. Sleuths down bugs at 2am. If a receipt prints or a report card loads, that\'s usually him.', links:[['gh','#','GitHub'],['in','#','LinkedIn']] },
+    { role:'Mobile',  title:'Mobile Engineer',          name:'[Team Member]', init:'ME', photo:'TEAM_PHOTO_4', pal:['#6ee7b7','#10b981','#047857'], bio:'Makes sure ArcDigital works on the cheapest Android phone on the worst network. Parents check fees on the bus — that\'s on her.', links:[['gh','#','GitHub'],['in','#','LinkedIn']] },
+    { role:'Support', title:'Client Success',           name:'[Team Member]', init:'CS', photo:'TEAM_PHOTO_5', pal:['#fcd34d','#f59e0b','#b45309'], bio:'Answers the phone when a principal can\'t log in 5 minutes before report cards go out. Onboards every new school personally.', links:[['phone','tel:0761980718','Call'],['mail','mailto:hello@arcdigital.app','Email'],['wa','https://wa.me/231761980718','WhatsApp']] },
+  ];
+
+  const SERVICES = [
+    ['school','School management','Full K-12 platforms: enrolment, fees, results, attendance, timetables, ID cards, transcripts — the whole thing.'],
+    ['hospital','Hospital &amp; clinic systems','Patient records, appointments, prescriptions, lab results, staff scheduling, billing — safe and paperless.'],
+    ['hr','HR &amp; payroll','Staff records, attendance, leave, payroll, performance reviews, recruitment — for growing companies.'],
+    ['inventory','Inventory &amp; POS','Stock across locations, counter sales, receipts, daily reports — for shops and pharmacies.'],
+    ['restaurant','Restaurants &amp; hotels','Table-side orders, kitchen tickets, room bookings, invoices and occupancy — hospitality without the chaos.'],
+    ['church','Church, chama &amp; susu','Member registry, contributions, welfare balances, savings and loans, events and attendance.'],
+    ['property','Property &amp; rent','Tenants, leases, rent collection, receipts and maintenance — know who has paid at a glance.'],
+    ['build','Construction estimating','Foundation, walls and roofing estimates in USD or LRD, with printable reports and Excel export.'],
+    ['idea','Bring your own idea',"Have something else in mind? Describe it in one call and I'll tell you honestly what it takes."],
+  ];
+
+  const INDUSTRIES = ['Schools','Clinics','Pharmacies','Restaurants','Churches','Susu clubs','Hotels','Landlords','Contractors','Shops','NGOs','Offices','Community groups'];
+
+  /* ═══════════════ helpers ═══════════════ */
+  const $  = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine   = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const rgb  = h => { const n = parseInt(h.slice(1), 16); return `${(n>>16)&255},${(n>>8)&255},${n&255}`; };
+  const vars = p => `--c1:${p.c1};--c2:${p.c2};--c3:${p.c3};--r:${rgb(p.c2)}`;
+  const ic   = (n, c='h-4 w-4') => `<svg class="${c}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+
+  const ICON = {
+    school:'<path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/>',
+    hospital:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    hr:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    inventory:'<path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+    restaurant:'<path d="M5 3v8a2 2 0 0 0 2 2v8M9 3v8a2 2 0 0 1-2 2M7 3v8M18 3c-2 1.5-3 4-3 7v3h3v8"/>',
+    church:'<path d="M12 2v5M9.5 4.5h5"/><path d="M5 22V12l7-5 7 5v10Z"/><path d="M10 22v-5a2 2 0 0 1 4 0v5"/>',
+    property:'<path d="m3 11 9-8 9 8"/><path d="M5 10v11h14V10"/><path d="M10 21v-6h4v6"/>',
+    hotel:'<path d="M2 18v-7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v7"/><path d="M2 14h20M2 21v-3M22 21v-3M6 9V6h5v3"/>',
+    savings:'<circle cx="12" cy="12" r="9"/><path d="M14.7 9.3c-.4-.9-1.4-1.4-2.7-1.4-1.6 0-2.6.8-2.6 2s1 1.6 2.6 2c1.6.3 2.6.8 2.6 2s-1 2-2.6 2c-1.3 0-2.3-.5-2.7-1.4M12 6v2M12 16v2"/>',
+    build:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h2M14 10h2M8 14h2M14 14h2M8 18h2M14 18h2"/>',
+    idea:'<path d="M12 2 3 7l9 5 9-5-9-5Z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/>',
+  };
+  const gl = (id, c='h-5 w-5') => `<svg viewBox="0 0 24 24" class="${c}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[id]}</svg>`;
+
+  /* ═══════════════ animated SVG art ═══════════════ */
+  const n1 = v => +v.toFixed(1);
+  const person = (x, y, r, c) => {
+    const a=r*.6, b=r*.62, d=r*.42, e=r*.66, f=r*.24;
+    return `<circle cx="${x}" cy="${y}" r="${r}" class="${c}"/><circle cx="${x}" cy="${n1(y-r*.26)}" r="${n1(r*.34)}" fill="#fff"/><path d="M${n1(x-a)} ${n1(y+b)}c0 ${n1(-d)} ${n1(r*.26)} ${n1(-e)} ${n1(a)} ${n1(-e)}s${n1(a)} ${n1(f)} ${n1(a)} ${n1(e)}z" fill="#fff"/>`;
+  };
+  const cube = (x, y, s) => `<path d="M${x} ${y}L${x+s} ${y+s/2}L${x} ${y+s}L${x-s} ${y+s/2}Z" class="f1"/><path d="M${x-s} ${y+s/2}L${x} ${y+s}V${y+2*s}L${x-s} ${y+1.5*s}Z" class="f2"/><path d="M${x} ${y+s}L${x+s} ${y+s/2}V${y+1.5*s}L${x} ${y+2*s}Z" class="f3"/>`;
+  const star = (cx, cy, r, cls, style='') => { let p=''; for (let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.45:r; p+=(i?'L':'M')+(cx+rr*Math.cos(a)).toFixed(1)+' '+(cy+rr*Math.sin(a)).toFixed(1); } return `<path d="${p}Z" class="${cls}" style="${style}"/>`; };
+  const pill = (x, y, w, label, cls='a-fl3') => `<g class="${cls}"><rect x="${x}" y="${y}" width="${w}" height="32" rx="16" class="f3"/><text x="${x+w/2}" y="${y+21}" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">${label}</text></g>`;
+
+  const W = inner => `<svg viewBox="0 0 400 400" class="relative h-full w-full" aria-hidden="true" focusable="false">
+    <g class="a-spin"><circle cx="200" cy="200" r="180" class="fn s1" stroke-width="1.5" stroke-dasharray="2 12" stroke-linecap="round" opacity=".55"/><circle cx="200" cy="20" r="5" class="f1"/><circle cx="380" cy="200" r="3.5" class="f2"/></g>
+    <g class="a-spinr"><circle cx="200" cy="200" r="152" class="fn s2" stroke-width="1" stroke-dasharray="1 9" opacity=".5"/><circle cx="48" cy="200" r="4" class="f2"/><circle cx="200" cy="352" r="3" class="f1"/></g>${inner}</svg>`;
+
+  const ART = {
+    school: () => W(`
+      <g class="a-fl">
+        <path d="M150 190v42c0 20 22 34 50 34s50-14 50-34v-42l-50 24z" class="f3"/>
+        <path d="M96 166 200 118l104 48-104 48z" class="f1"/>
+        <path d="M200 166l82 14v46" class="fn s2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="282" cy="234" r="8" class="f2"/><circle cx="200" cy="166" r="6" class="f2 a-pulse"/>
+      </g>
+      <g class="a-fl2"><rect x="58" y="268" width="136" height="88" rx="12" class="f3"/><rect x="68" y="278" width="116" height="68" rx="7" fill="#fff7ed"/><rect x="80" y="290" width="62" height="6" rx="3" class="f2"/><rect x="80" y="304" width="88" height="4" rx="2" class="f1" opacity=".8"/><rect x="80" y="314" width="72" height="4" rx="2" class="f1" opacity=".8"/><text x="170" y="338" font-size="20" font-weight="800" text-anchor="end" class="f3">A+</text></g>
+      <g class="a-fl3"><circle cx="312" cy="322" r="34" fill="#10b981"/><path d="M296 322l12 12 22-25" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></g>
+      ${pill(40,96,98,'32 modules')}`),
+
+    hospital: () => W(`
+      <g class="a-fl">
+        <rect x="112" y="140" width="176" height="176" rx="12" class="f3"/>
+        ${[0,1,2].flatMap(i=>[0,1].map(j=>`<rect x="${134+i*46}" y="${162+j*44}" width="30" height="30" rx="5" fill="#d1fae5" class="a-blink" style="animation-delay:${((i*2+j)*.45).toFixed(2)}s"/>`)).join('')}
+        <rect x="184" y="262" width="32" height="54" rx="5" fill="#064e3b"/>
+        <g transform="translate(200,108)"><rect x="-28" y="-10" width="56" height="20" rx="5" fill="#fff"/><rect x="-10" y="-28" width="20" height="56" rx="5" fill="#fff"/></g>
+      </g>
+      <path d="M36 366H112L128 346 146 384 168 322 186 378 200 366H364" pathLength="600" class="fn s1 a-draw" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <g class="a-fl3"><circle cx="330" cy="130" r="26" fill="#ef4444" opacity=".25" class="a-ping"/><path d="M330 154C306 136 298 118 306 106C314 94 330 98 330 112C330 98 346 94 354 106C362 118 354 136 330 154Z" fill="#ef4444"/></g>`),
+
+    hr: () => W(`
+      <g class="a-fl">${person(200,96,34,'f2')}</g>
+      <path d="M200 132V176M200 176H110V212M200 176V212M200 176H290V212" class="fn s1 a-dash" stroke-width="2.5" stroke-linecap="round"/>
+      <g class="a-fl2">${person(110,244,30,'f3')}</g><g class="a-fl3">${person(200,244,30,'f2')}</g><g class="a-fl">${person(290,244,30,'f3')}</g>
+      <g class="a-fl2"><rect x="116" y="308" width="168" height="46" rx="14" class="f3"/><text x="134" y="326" font-size="11" font-weight="700" fill="#fff" opacity=".9">PAYROLL</text><rect x="134" y="334" width="132" height="8" rx="4" fill="#fff" opacity=".25"/><rect x="134" y="334" width="92" height="8" rx="4" class="f1"/></g>`),
+
+    inventory: () => W(`
+      <g class="a-fl">${cube(150,228,46)}${cube(242,228,46)}</g>
+      <g class="a-fl2">${cube(196,168,46)}</g>
+      <g class="a-fl3"><rect x="262" y="64" width="112" height="82" rx="12" class="f3"/>${[16,30,22,42,34].map((h,i)=>`<rect x="${278+i*18}" y="${128-h}" width="11" height="${h}" rx="3" class="f1 a-bar" style="animation-delay:${(i*.25).toFixed(2)}s"/>`).join('')}</g>
+      ${pill(38,104,86,'In stock','a-fl2')}
+      <path d="M60 336H340" class="fn s1" stroke-width="2" stroke-dasharray="3 8" stroke-linecap="round" opacity=".5"/>`),
+
+    restaurant: () => W(`
+      <g class="a-fl">
+        <ellipse cx="200" cy="322" rx="118" ry="14" fill="#000" opacity=".25"/>
+        <circle cx="200" cy="238" r="92" class="f3"/><circle cx="200" cy="238" r="72" fill="#fff1f2"/>
+        <circle cx="172" cy="226" r="24" fill="#f97316"/><circle cx="232" cy="216" r="19" fill="#10b981"/><circle cx="204" cy="258" r="22" fill="#fbbf24"/><circle cx="168" cy="264" r="9" fill="#f43f5e"/>
+        <path d="M180 150q10-14 0-30" class="fn s1 a-steam" stroke-width="4" stroke-linecap="round"/>
+        <path d="M200 146q10-14 0-30" class="fn s1 a-steam" stroke-width="4" stroke-linecap="round" style="animation-delay:.7s"/>
+        <path d="M220 150q10-14 0-30" class="fn s1 a-steam" stroke-width="4" stroke-linecap="round" style="animation-delay:1.4s"/>
+      </g>
+      <g class="a-fl2"><path d="M70 190v30c0 8 6 12 12 12s12-4 12-12v-30M82 190v42M82 232v70" class="fn s1" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g>
+      <g class="a-fl3"><path d="M322 190c16 14 16 46 0 62v52" class="fn s1" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g>
+      <g transform="translate(276,64) rotate(6)"><g class="a-fl3"><rect width="78" height="96" rx="8" fill="#fff1f2"/><rect x="10" y="12" width="40" height="5" rx="2.5" class="f3"/><rect x="10" y="24" width="58" height="4" rx="2" class="f1"/><rect x="10" y="34" width="50" height="4" rx="2" class="f1"/><rect x="10" y="44" width="54" height="4" rx="2" class="f1"/><circle cx="58" cy="76" r="10" class="f2"/><path d="M53 76l4 4 7-8" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></g></g>`),
+
+    church: () => W(`
+      <g class="a-fl">
+        <rect x="180" y="122" width="40" height="70" class="f3"/>
+        <path d="M174 124 200 84l26 40z" class="f2"/>
+        <path d="M200 84V58M190 68h20" class="fn" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        <path d="M112 214 200 160l88 54z" class="f2"/>
+        <rect x="128" y="212" width="144" height="108" class="f3"/>
+        <path d="M184 320v-38a16 16 0 0 1 32 0v38z" fill="#1c1917"/>
+        <rect x="146" y="238" width="24" height="38" rx="12" fill="#fef3c7" class="a-blink"/>
+        <rect x="230" y="238" width="24" height="38" rx="12" fill="#fef3c7" class="a-blink" style="animation-delay:.9s"/>
+      </g>
+      <g class="a-fl3"><ellipse cx="328" cy="340" rx="32" ry="10" class="f3"/><ellipse cx="328" cy="328" rx="32" ry="10" class="f1"/><ellipse cx="328" cy="316" rx="32" ry="10" class="f2"/><text x="328" y="321" font-size="13" font-weight="800" text-anchor="middle" fill="#fff">$</text></g>
+      ${pill(38,96,104,'Welfare','a-fl2')}`),
+
+    property: () => W(`
+      <g class="a-fl">
+        <rect x="92" y="144" width="116" height="196" rx="8" class="f3"/><rect x="208" y="206" width="100" height="134" rx="8" class="f2"/>
+        ${[0,1,2].flatMap(i=>[0,1,2].map(j=>`<rect x="${108+i*34}" y="${162+j*42}" width="22" height="28" rx="3" fill="#ccfbf1" class="a-blink" style="animation-delay:${(((i*3+j*5)%7)*.5).toFixed(2)}s"/>`)).join('')}
+        ${[0,1].flatMap(i=>[0,1].map(j=>`<rect x="${226+i*40}" y="${224+j*44}" width="26" height="30" rx="3" fill="#ccfbf1" class="a-blink" style="animation-delay:${(((i*2+j*3)%5)*.6+.3).toFixed(2)}s"/>`)).join('')}
+        <rect x="152" y="296" width="30" height="44" rx="4" fill="#042f2e"/>
+      </g>
+      <g class="a-fl3"><circle cx="300" cy="110" r="20" class="fn s1" stroke-width="8"/><path d="M314 124 360 170M342 152l12-12M354 164l12-12" class="fn s1" stroke-width="8" stroke-linecap="round"/></g>
+      ${pill(40,96,100,'Rent paid','a-fl2')}`),
+
+    hotel: () => W(`
+      <g class="a-fl">
+        <path d="M110 296a90 90 0 0 1 180 0z" class="f2"/>
+        <path d="M134 278a68 68 0 0 1 36-56" class="fn" stroke="#fff" stroke-opacity=".55" stroke-width="7" stroke-linecap="round"/>
+        <rect x="90" y="296" width="220" height="24" rx="12" class="f3"/>
+        <rect x="188" y="196" width="24" height="16" rx="5" class="f1"/><circle cx="200" cy="188" r="9" class="f1"/>
+      </g>
+      <circle cx="200" cy="188" r="16" class="fn s1 a-ping" stroke-width="3"/>
+      <circle cx="200" cy="188" r="16" class="fn s1 a-ping" stroke-width="3" style="animation-delay:1.1s"/>
+      <g transform="translate(272,66) rotate(12)"><g class="a-fl3"><rect width="98" height="62" rx="9" class="f3"/><rect x="11" y="14" width="26" height="20" rx="4" class="f1"/><rect x="11" y="44" width="62" height="5" rx="2.5" fill="#fff" opacity=".55"/></g></g>
+      ${[0,1,2,3,4].map(i=>star(120+i*40,360,13,'f1 a-blink',`animation-delay:${(i*.5).toFixed(1)}s`)).join('')}`),
+
+    savings: () => W(`
+      ${[[200,75],[325,200],[200,325],[75,200]].map(([x,y],i)=>`<g class="${['a-fl','a-fl2','a-fl3','a-fl2'][i]}">${person(x,y,26,i%2?'f3':'f2')}</g>`).join('')}
+      <path d="M200 103V124M297 200H276M200 297V276M103 200H124" class="fn s1 a-dash" stroke-width="3" stroke-linecap="round"/>
+      <circle r="5" class="f1"><animateMotion dur="2.4s" repeatCount="indefinite" path="M200 103V176"/></circle>
+      <circle r="5" class="f1"><animateMotion dur="2.4s" begin="-.6s" repeatCount="indefinite" path="M297 200H224"/></circle>
+      <circle r="5" class="f1"><animateMotion dur="2.4s" begin="-1.2s" repeatCount="indefinite" path="M200 297V224"/></circle>
+      <circle r="5" class="f1"><animateMotion dur="2.4s" begin="-1.8s" repeatCount="indefinite" path="M103 200H176"/></circle>
+      <g class="a-breathe"><circle cx="200" cy="200" r="62" class="f3"/><circle cx="200" cy="200" r="50" class="f2"/><text x="200" y="223" font-size="62" font-weight="800" text-anchor="middle" fill="#fff">$</text></g>
+      <circle cx="200" cy="200" r="76" class="fn s1" stroke-width="6" stroke-linecap="round" stroke-dasharray="300 478" transform="rotate(-90 200 200)"/>`),
+
+    build: () => W(`
+      <defs><pattern id="bp" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" class="fn s1" stroke-width=".7" opacity=".35"/></pattern></defs>
+      <rect x="60" y="100" width="280" height="262" rx="14" fill="url(#bp)" opacity=".7"/>
+      <path d="M112 206 200 134l88 72" pathLength="600" class="fn s1 a-draw" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M124 206V318H276V206" pathLength="600" class="fn s1 a-draw" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" style="animation-delay:.3s"/>
+      <rect x="186" y="262" width="28" height="56" rx="3" class="fn s2" stroke-width="3"/>
+      <rect x="140" y="236" width="30" height="30" rx="3" class="fn s2" stroke-width="3"/><rect x="230" y="236" width="30" height="30" rx="3" class="fn s2" stroke-width="3"/>
+      <path d="M124 340H276M124 333v14M276 333v14" class="fn s2" stroke-width="2.5" stroke-linecap="round"/>
+      <text x="200" y="362" font-size="13" font-weight="700" text-anchor="middle" class="f1">12.0 m</text>
+      <path d="M306 206V318M300 206h12M300 318h12" class="fn s2" stroke-width="2.5" stroke-linecap="round"/>
+      <text x="316" y="266" font-size="13" font-weight="700" class="f1">3.2 m</text>
+      <g class="a-fl3"><rect x="232" y="56" width="64" height="30" rx="15" class="f2"/><text x="264" y="76" font-size="13" font-weight="800" text-anchor="middle" fill="#fff">USD</text><rect x="302" y="56" width="64" height="30" rx="15" class="fn s1" stroke-width="2"/><text x="334" y="76" font-size="13" font-weight="800" text-anchor="middle" class="f1">LRD</text></g>`),
+  };
+
+  /* ═══════════════ render: slider, catalog, services, team, footer ═══════════════ */
+  const N = PROJECTS.length;
+
+  const slideHTML = (p, i) => `
+    <article class="slide" data-i="${i}" style="${vars(p)}" role="group" aria-roledescription="slide" aria-label="${i+1} of ${N}: ${p.name}${p.accent} ${p.sub.replace(/&/g,'and')}">
+      <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center p-6 sm:p-10 lg:p-14">
+        <div class="stagger order-2 lg:order-1 text-center lg:text-left">
+          <span class="tagpill">${p.tag.replace(/&/g,'&amp;')}</span>
+          <h3 class="mt-4 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.08]">${p.name}<span class="accent-g">${p.accent}</span><br><span class="text-white/90">${p.sub.replace(/&/g,'&amp;')}</span></h3>
+          <p class="mt-4 text-sm sm:text-base lg:text-lg text-slate-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">${p.desc}</p>
+          <div class="flex flex-wrap gap-2 justify-center lg:justify-start" style="margin-top:1.25rem">${p.chips.map(c=>`<span class="chip">${c}</span>`).join('')}</div>
+          <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start" style="margin-top:1.75rem">
+            <a href="${p.link}" target="_blank" rel="noopener noreferrer" class="btn btn-p shine" data-magnetic>View project ${ic('ext')}</a>
+            <a href="tel:0761980718" class="btn btn-g">${ic('phone')} Call about it</a>
+          </div>
+        </div>
+        <div class="art order-1 lg:order-2 flex items-center justify-center">
+          <div class="relative w-full max-w-[20rem] sm:max-w-md aspect-square">
+            <div class="absolute inset-6 rounded-full blur-3xl opacity-25" style="background:var(--c2)"></div>
+            ${ART[p.id]()}
+          </div>
+        </div>
+      </div>
+    </article>`;
+
+  const cardHTML = (p, i) => `
+    <div class="reveal" data-cat="${p.cat}" style="transition-delay:${(i%3)*80}ms">
+      <article class="tilt spot hoverglow glass h-full flex flex-col rounded-3xl p-6" data-tilt style="${vars(p)}">
+        <div class="flex items-start justify-between gap-3">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl" style="color:var(--c1);background:rgba(var(--r),.15);box-shadow:inset 0 0 0 1px rgba(var(--r),.3)">${gl(p.id,'h-6 w-6')}</span>
+          <span class="tagpill">${p.cat}</span>
+        </div>
+        <h3 class="mt-5 text-xl font-extrabold tracking-tight">${p.name}<span class="accent-g">${p.accent}</span></h3>
+        <p class="mt-0.5 text-xs font-semibold uppercase tracking-wider text-slate-400">${p.sub.replace(/&/g,'&amp;')}</p>
+        <p class="mt-3 flex-1 text-sm leading-relaxed text-slate-300">${p.desc}</p>
+        <div class="mt-4 flex flex-wrap gap-1.5">${p.chips.slice(0,3).map(c=>`<span class="chip">${c}</span>`).join('')}</div>
+        <div class="mt-5 flex gap-2">
+          <a href="${p.link}" target="_blank" rel="noopener noreferrer" class="btn btn-p btn-sm shine flex-1">View project ${ic('ext')}</a>
+          <button type="button" data-goto="${i}" class="btn btn-g btn-sm" aria-label="Preview ${p.name}${p.accent}">Preview</button>
+        </div>
+      </article>
+    </div>`;
+
+  const teamHTML = t => {
+    const p = { c1:t.pal[0], c2:t.pal[1], c3:t.pal[2] };
+    return `
+    <div class="reveal">
+      <article class="tilt spot hoverglow group h-full rounded-3xl bg-gradient-to-b from-ink-800 to-ink-900 ring-1 ring-white/10" data-tilt style="${vars(p)}">
+        <div class="relative aspect-[4/5] overflow-hidden">
+          <div class="absolute inset-0" style="background:linear-gradient(135deg,var(--c2),var(--c3))"></div>
+          <div class="absolute inset-0 grid place-items-center text-6xl font-black text-white/90">${t.init}</div>
+          <img src="${t.photo}" alt="${t.title} portrait" loading="lazy" class="relative h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" onerror="this.remove()" />
+          <div class="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/40 to-transparent"></div>
+          <span class="absolute top-4 left-4 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-lg" style="background:var(--c3)">${t.role}</span>
+        </div>
+        <div class="relative -mt-12 p-5 sm:p-6">
+          <h3 class="text-lg sm:text-xl font-extrabold text-white">${t.name}</h3>
+          <p class="mt-0.5 text-xs sm:text-sm font-semibold" style="color:var(--c1)">${t.title.replace(/&/g,'&amp;')}</p>
+          <p class="mt-3 text-xs sm:text-sm leading-relaxed text-slate-400">${t.bio}</p>
+          <div class="mt-4 flex items-center gap-2">${t.links.map(([i,h,l])=>`<a href="${h}" class="soc" aria-label="${l}"${h.startsWith('http')?' target="_blank" rel="noopener"':''}>${ic(i,'h-3.5 w-3.5')}</a>`).join('')}</div>
+        </div>
+      </article>
+    </div>`;
+  };
+
+  const joinHTML = `
+    <div class="reveal">
+      <article class="tilt spot hoverglow relative flex h-full min-h-[400px] flex-col justify-between rounded-3xl bg-gradient-to-br from-brand-600/20 via-brand-700/10 to-ink-900 p-6 ring-1 ring-white/10 sm:p-8" data-tilt style="--r:249,115,22">
+        <div class="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full border-2 border-brand-400/40" style="animation:ping 2.4s ease-out infinite"></div>
+        <div class="relative">
+          <span class="inline-flex rounded-full bg-brand-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-lg">We're hiring</span>
+          <h3 class="mt-4 text-xl sm:text-2xl font-extrabold leading-tight text-white">Want to join<br>the small team?</h3>
+          <p class="mt-3 text-xs sm:text-sm leading-relaxed text-slate-300">We hire slowly and carefully. If you write clean code, design with restraint, or love supporting users — we'd like to hear from you.</p>
+        </div>
+        <a href="https://wa.me/231761980718?text=Hi%2C%20I%27d%20like%20to%20join%20the%20ArcDigital%20team" target="_blank" rel="noopener" class="btn btn-p btn-sm shine relative mt-6 w-full">${ic('wa')} Message us</a>
+      </article>
+    </div>`;
+
+  /* mount */
+  $('#track').innerHTML = PROJECTS.map(slideHTML).join('');
+  $('#dots').innerHTML  = PROJECTS.map((p,i)=>`<button type="button" class="dotw" data-dot="${i}" aria-label="Show ${p.name}${p.accent}"><span class="dot"><i></i></span></button>`).join('');
+  $('#catalogGrid').innerHTML = PROJECTS.map(cardHTML).join('');
+  $('#svc').innerHTML = SERVICES.map(([id,t,d],i)=>{
+    const p = PROJECTS.find(x=>x.id===id) || PROJECTS[0];
+    return `<div class="reveal" style="transition-delay:${(i%3)*80}ms"><article class="tilt spot hoverglow glass h-full rounded-2xl p-5 sm:p-6" data-tilt style="${vars(p)}"><span class="grid h-11 w-11 place-items-center rounded-xl" style="color:var(--c1);background:rgba(var(--r),.15);box-shadow:inset 0 0 0 1px rgba(var(--r),.3)">${gl(id)}</span><h3 class="mt-4 text-base sm:text-lg font-bold">${t}</h3><p class="mt-2 text-xs sm:text-sm leading-relaxed text-slate-300">${d}</p></article></div>`;
+  }).join('');
+  $('#teamGrid').innerHTML = TEAM.map(teamHTML).join('') + joinHTML;
+  $('#footProjects').innerHTML = PROJECTS.map((p,i)=>`<li><button type="button" data-goto="${i}" class="text-left hover:text-white transition">${p.name}${p.accent} — ${p.sub.replace(/&/g,'&amp;')}</button></li>`).join('');
+  $('#marq').innerHTML = [...INDUSTRIES, ...INDUSTRIES].map(t=>`<span>${t}</span>`).join('');
+  $('#statProducts').dataset.count = N;
+  $('#statProducts').textContent = N + '+';
+  $('#year').textContent = new Date().getFullYear();
+
+  /* filters */
+  const cats = ['All', ...new Set(PROJECTS.map(p=>p.cat))];
+  $('#filters').innerHTML = cats.map((c,i)=>`<button type="button" class="fchip" data-filter="${c}" aria-pressed="${i===0}">${c}</button>`).join('');
+  $('#filters').addEventListener('click', e => {
+    const b = e.target.closest('[data-filter]'); if (!b) return;
+    $$('.fchip').forEach(x => x.setAttribute('aria-pressed', x === b));
+    $$('#catalogGrid > [data-cat]').forEach(card => {
+      const show = b.dataset.filter === 'All' || card.dataset.cat === b.dataset.filter;
+      card.style.display = show ? '' : 'none';
+      if (show) { card.classList.add('is-visible'); card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop'); }
+    });
+  });
+
+  /* ═══════════════ slider logic ═══════════════ */
+  const stage = $('#showcase'), box = $('#slider'), track = $('#track'), ctrl = $('#ctrl'), dotsEl = $('#dots');
+  const slides = $$('.slide', track);
+  const DUR = 8000, auto = !reduce;
+  let cur = 0, timer = null, hovering = false, inView = true, dragging = false;
+  dotsEl.style.setProperty('--dur', DUR + 'ms');
+  if (!auto) stage.classList.add('noauto');
+
+  function restartFill() {
+    const f = dotsEl.children[cur] && dotsEl.children[cur].querySelector('i');
+    if (!f) return; f.style.animation = 'none'; void f.offsetWidth; f.style.animation = '';
+  }
+  function state() {
+    clearTimeout(timer);
+    const run = auto && !hovering && inView && !document.hidden && !dragging;
+    stage.classList.toggle('paused', !run);
+    if (run) { restartFill(); timer = setTimeout(() => go(cur + 1), DUR); }
+  }
+  function paint() {
+    track.style.transform = `translateX(-${cur * 100}%)`;
+    slides.forEach((s, i) => { const on = i === cur; s.classList.toggle('active', on); s.setAttribute('aria-hidden', String(!on)); if (on) s.removeAttribute('inert'); else s.setAttribute('inert', ''); });
+    const p = PROJECTS[cur];
+    box.style.setProperty('--c2', p.c2); box.style.setProperty('--r', rgb(p.c2));
+    ctrl.style.setProperty('--c2', p.c2); ctrl.style.setProperty('--c3', p.c3);
+    Array.from(dotsEl.children).forEach((d, i) => d.firstChild.classList.toggle('active', i === cur));
+    $('#slideCounter').textContent = `${cur + 1} / ${N}`;
+    $('#slideName').textContent = `${p.name}${p.accent} — ${p.sub}`;
+    state();
+  }
+  function go(i) { cur = (i + N) % N; paint(); }
+
+  $('#prevBtn').addEventListener('click', () => go(cur - 1));
+  $('#nextBtn').addEventListener('click', () => go(cur + 1));
+  dotsEl.addEventListener('click', e => { const b = e.target.closest('[data-dot]'); if (b) go(+b.dataset.dot); });
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-goto]'); if (!b) return;
+    go(+b.dataset.goto);
+    stage.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  });
+  document.addEventListener('keydown', e => {
+    if (!inView || /input|textarea|select/i.test(e.target.tagName)) return;
+    if (e.key === 'ArrowLeft') go(cur - 1); else if (e.key === 'ArrowRight') go(cur + 1);
+  });
+
+  box.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { hovering = true; state(); } });
+  box.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { hovering = false; state(); } });
+
+  let startX = 0, dx = 0, bw = 0;
+  box.addEventListener('pointerdown', e => {
+    if (e.button > 0 || e.target.closest('a,button')) return;
+    dragging = true; startX = e.clientX; dx = 0; bw = box.offsetWidth;
+    box.classList.add('dragging'); box.setPointerCapture(e.pointerId); state();
+  });
+  box.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    dx = e.clientX - startX;
+    track.style.transform = `translateX(${-cur * bw + dx}px)`;
+  });
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false; box.classList.remove('dragging');
+    const t = bw * .15;
+    if (dx > t) go(cur - 1); else if (dx < -t) go(cur + 1); else paint();
+    dx = 0;
+  }
+  box.addEventListener('pointerup', endDrag);
+  box.addEventListener('pointercancel', endDrag);
+
+  new IntersectionObserver(es => { inView = es[0].isIntersecting; state(); }, { threshold: .25 }).observe(box);
+  document.addEventListener('visibilitychange', state);
+  paint();
+
+  /* ═══════════════ effects ═══════════════ */
+  // rotating headline word
+  const words = ['schools','clinics','shops','restaurants','churches','hotels','your business'];
+  const rw = $('#rotWord');
+  if (reduce) { rw.textContent = 'your business'; }
+  else {
+    let wi = 0;
+    setInterval(() => { wi = (wi + 1) % words.length; rw.textContent = words[wi]; rw.classList.remove('word-in'); void rw.offsetWidth; rw.classList.add('word-in'); }, 2300);
+  }
+
+  // card tilt + spotlight, magnetic buttons
+  function bindFX(root = document) {
+    $$('[data-tilt]', root).forEach(el => {
+      if (el.dataset.fx) return; el.dataset.fx = '1';
+      el.addEventListener('pointermove', e => {
+        if (e.pointerType !== 'mouse') return;
+        const r = el.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+        el.style.setProperty('--mx', x + 'px'); el.style.setProperty('--my', y + 'px');
+        if (!reduce) el.style.transform = `perspective(900px) rotateX(${((y / r.height) - .5) * -6}deg) rotateY(${((x / r.width) - .5) * 8}deg) translateY(-3px)`;
+      });
+      el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+    });
+    if (!fine || reduce) return;
+    $$('[data-magnetic]', root).forEach(el => {
+      if (el.dataset.mg) return; el.dataset.mg = '1';
+      el.addEventListener('pointermove', e => { const r = el.getBoundingClientRect(); el.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .15}px,${(e.clientY - r.top - r.height / 2) * .25}px)`; });
+      el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+    });
+  }
+  bindFX();
+
+  // reveal on scroll
+  const rio = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-visible'); rio.unobserve(e.target); } }), { threshold: .12, rootMargin: '0px 0px -40px 0px' });
+  $$('.reveal').forEach(el => rio.observe(el));
+
+  // animated counters
+  const cio = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return; cio.unobserve(e.target);
+    const el = e.target, end = +el.dataset.count, suf = el.dataset.suffix || '';
+    if (reduce) { el.textContent = end.toLocaleString() + suf; return; }
+    const t0 = performance.now(), d = 1400;
+    (function f(t) { const p = Math.min(1, (t - t0) / d); el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3))).toLocaleString() + suf; if (p < 1) requestAnimationFrame(f); })(t0);
+  }), { threshold: .6 });
+  $$('[data-count]').forEach(el => cio.observe(el));
+
+  // scroll progress, parallax, nav state, FAB
+  const progress = $('#progress'), navbar = $('#navbar'), fab = $('#fab'), root = document.documentElement;
+  let ticking = false;
+  function onScroll() {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => {
+      const y = scrollY, h = root.scrollHeight - innerHeight;
+      progress.style.transform = `scaleX(${h > 0 ? y / h : 0})`;
+      if (!reduce) root.style.setProperty('--sy', Math.round(y));
+      navbar.classList.toggle('bg-ink-900/70', y > 20); navbar.classList.toggle('shadow-xl', y > 20);
+      fab.classList.toggle('show', y > 600);
+      ticking = false;
+    });
+  }
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  // active nav link
+  const navLinks = $$('[data-nav]');
+  const nio = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    navLinks.forEach(a => a.classList.toggle('nav-on', a.getAttribute('href') === '#' + e.target.id));
+  }), { rootMargin: '-40% 0px -55% 0px' });
+  ['catalog','demo','services','about','team','process','contact'].forEach(id => { const s = document.getElementById(id); if (s) nio.observe(s); });
+
+  // mobile menu
+  const menuBtn = $('#menuBtn'), mobileMenu = $('#mobileMenu');
+  function setMenu(open) { mobileMenu.classList.toggle('open', open); open ? mobileMenu.removeAttribute('inert') : mobileMenu.setAttribute('inert', ''); menuBtn.setAttribute('aria-expanded', String(open)); }
+  menuBtn.addEventListener('click', () => setMenu(!mobileMenu.classList.contains('open')));
+  $$('a', mobileMenu).forEach(a => a.addEventListener('click', () => setMenu(false)));
+
+  // cursor glow (desktop only)
+  if (fine && !reduce) {
+    const cur2 = $('#cursor'); let tx = 0, ty = 0, x = 0, y = 0, raf = 0;
+    const loop = () => { x += (tx - x) * .15; y += (ty - y) * .15; cur2.style.transform = `translate3d(${x}px,${y}px,0)`; raf = (Math.abs(tx - x) + Math.abs(ty - y) > .5) ? requestAnimationFrame(loop) : 0; };
+    addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; cur2.style.opacity = 1; if (!raf) raf = requestAnimationFrame(loop); }, { passive: true });
+  }
+
+  // copy demo link + toast
+  const toastEl = $('#toast'); let toastT;
+  function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 2200); }
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[data-copy]')) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(DEMO_URL).then(() => toast('Demo link copied'), () => toast('Could not copy — long-press the link instead'));
+    else toast('Could not copy — long-press the link instead');
+  });
+
+  // respect reduced motion for SMIL animations
+  if (reduce) $$('svg').forEach(s => s.pauseAnimations && s.pauseAnimations());
+  </script>
+</body>
+</html>
