@@ -771,387 +771,336 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════════════
-   AUTHENTICATION
+   INDEXEDDB — same DB as index.html
    ═══════════════════════════════════════════════════════════════ */
-const _CRED = (() => {
-  const u = String.fromCharCode(84,114,97,118,111,108,116,97); // Travolta
-  const p = String.fromCharCode(65,100,109,105,110,49,50,51);   // Admin123
-  return { u, p };
-})();
+const IDB_NAME = 'arcdigital_db', IDB_VERSION = 1, IDB_SETTINGS = 'settings', IDB_MEDIA = 'media', SETTINGS_KEY = 'portfolio', LEGACY_LS_KEY = 'arcdigital_admin_v1';
+let _dbPromise = null;
+function openDB() {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_SETTINGS)) db.createObjectStore(IDB_SETTINGS, { keyPath: 'key' });
+      if (!db.objectStoreNames.contains(IDB_MEDIA)) db.createObjectStore(IDB_MEDIA, { keyPath: 'key' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return _dbPromise;
+}
+async function dbGet(store, key) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(store, 'readonly'); const r = tx.objectStore(store).get(key); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error); }); }
+async function dbGetAll(store) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(store, 'readonly'); const r = tx.objectStore(store).getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => rej(r.error); }); }
+async function dbPut(store, val) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(store, 'readwrite'); tx.objectStore(store).put(val); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); }
+async function dbDelete(store, key) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(store, 'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); }
+async function dbClear(store) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(store, 'readwrite'); tx.objectStore(store).clear(); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); }
+async function idbGetMedia(key) { if (!key) return null; try { const r = await dbGet(IDB_MEDIA, key); return r ? r.dataUrl : null; } catch { return null; } }
+async function idbPutMedia(key, dataUrl) { return dbPut(IDB_MEDIA, { key, dataUrl, updated: Date.now() }); }
 
-async function sha256(str) {
-  const buf = new TextEncoder().encode(str);
-  const hash = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+async function migrateLegacyIfNeeded() {
+  try {
+    const existing = await dbGet(IDB_SETTINGS, SETTINGS_KEY);
+    if (existing) return;
+    const raw = localStorage.getItem(LEGACY_LS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    const mediaMap = parsed._media || {};
+    delete parsed._media;
+    for (const [k, v] of Object.entries(mediaMap)) { try { await idbPutMedia(k, v); } catch {} }
+    await dbPut(IDB_SETTINGS, { key: SETTINGS_KEY, data: parsed, updated: Date.now() });
+    localStorage.removeItem(LEGACY_LS_KEY);
+  } catch (e) { console.warn('legacy migration skipped', e); }
 }
 
-const AUTH_KEY = 'arcdigital_auth_session';
-const FAILS_KEY = 'arcdigital_auth_fails';
-const LOCK_KEY = 'arcdigital_auth_lock';
-const MAX_FAILS = 5;
-const LOCK_MS = 30_000;
-
+/* ═══════════════════════════════════════════════════════════════
+   AUTH
+   ═══════════════════════════════════════════════════════════════ */
+const _CRED = (() => { const u = String.fromCharCode(84,114,97,118,111,108,116,97); const p = String.fromCharCode(65,100,109,105,110,49,50,51); return { u, p }; })();
+async function sha256(str) { const buf = new TextEncoder().encode(str); const hash = await crypto.subtle.digest('SHA-256', buf); return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join(''); }
+const AUTH_KEY = 'arcdigital_auth_session', FAILS_KEY = 'arcdigital_auth_fails', LOCK_KEY = 'arcdigital_auth_lock', PW_HASH_KEY = 'arcdigital_admin_pw_hash', MAX_FAILS = 5, LOCK_MS = 30_000;
 let failedAttempts = +(localStorage.getItem(FAILS_KEY) || 0);
 
-const loginScreen = document.getElementById('loginScreen');
-const loginForm = document.getElementById('loginForm');
-const loginError = document.getElementById('loginError');
-const loginErrorText = document.getElementById('loginErrorText');
-const loginBtn = document.getElementById('loginBtn');
-const loginBtnLabel = document.getElementById('loginBtnLabel');
-const loginBtnSpinner = document.getElementById('loginBtnSpinner');
-const lockoutMsg = document.getElementById('lockoutMsg');
-const lockoutTimer = document.getElementById('lockoutTimer');
-const loginCard = document.getElementById('loginCard');
-
-function showLoginError(msg) {
-  loginErrorText.textContent = msg || 'Incorrect username or password.';
-  loginError.classList.remove('hidden');
-  loginCard.classList.remove('shake');
-  void loginCard.offsetWidth;
-  loginCard.classList.add('shake');
-}
-function hideLoginError() { loginError.classList.add('hidden'); }
-
-function setLoginLoading(loading) {
-  loginBtn.disabled = loading;
-  loginBtnLabel.textContent = loading ? 'Signing in…' : 'Sign in';
-  loginBtnSpinner.style.display = loading ? 'block' : 'none';
-}
-
-async function attemptLogin(username, password) {
-  const combined = username + ':' + password;
-  const hash = await sha256(combined);
-  const storedHash = localStorage.getItem('arcdigital_admin_pw_hash');
-  const expected = storedHash || await sha256(_CRED.u + ':' + _CRED.p);
-  return hash === expected;
-}
-
-function isLockedOut() {
-  const until = +(localStorage.getItem(LOCK_KEY) || 0);
-  return until > Date.now() ? until : 0;
-}
+function showLoginError(msg) { document.getElementById('loginErrorText').textContent = msg; document.getElementById('loginError').classList.remove('hidden'); const c = document.getElementById('loginCard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
+function hideLoginError() { document.getElementById('loginError').classList.add('hidden'); }
+function setLoginLoading(loading) { document.getElementById('loginBtn').disabled = loading; document.getElementById('loginBtnLabel').textContent = loading ? 'Signing in…' : 'Sign in'; document.getElementById('loginBtnSpinner').style.display = loading ? 'block' : 'none'; }
+async function attemptLogin(username, password) { const hash = await sha256(username + ':' + password); const stored = localStorage.getItem(PW_HASH_KEY); const expected = stored || await sha256(_CRED.u + ':' + _CRED.p); return hash === expected; }
+function isLockedOut() { const until = +(localStorage.getItem(LOCK_KEY) || 0); return until > Date.now() ? until : 0; }
 function startLockout() {
-  const until = Date.now() + LOCK_MS;
-  localStorage.setItem(LOCK_KEY, until);
-  showLockout();
+  const until = Date.now() + LOCK_MS; localStorage.setItem(LOCK_KEY, until);
+  document.getElementById('lockoutMsg').classList.add('show');
   const tick = setInterval(() => {
     const remaining = Math.ceil((until - Date.now()) / 1000);
-    if (remaining <= 0) {
-      clearInterval(tick);
-      lockoutMsg.classList.remove('show');
-      localStorage.removeItem(LOCK_KEY);
-      localStorage.setItem(FAILS_KEY, '0');
-      failedAttempts = 0;
-    } else {
-      lockoutTimer.textContent = remaining;
-    }
+    if (remaining <= 0) { clearInterval(tick); document.getElementById('lockoutMsg').classList.remove('show'); localStorage.removeItem(LOCK_KEY); localStorage.setItem(FAILS_KEY, '0'); failedAttempts = 0; }
+    else document.getElementById('lockoutTimer').textContent = remaining;
   }, 500);
 }
-function showLockout() {
-  const until = +(localStorage.getItem(LOCK_KEY) || 0);
-  const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-  lockoutTimer.textContent = remaining;
-  lockoutMsg.classList.add('show');
-}
+function showLockout() { const until = +(localStorage.getItem(LOCK_KEY) || 0); document.getElementById('lockoutTimer').textContent = Math.max(0, Math.ceil((until - Date.now()) / 1000)); document.getElementById('lockoutMsg').classList.add('show'); }
 
 document.getElementById('pwToggle').addEventListener('click', () => {
-  const pw = document.getElementById('loginPassword');
-  const eyeOpen = document.getElementById('eyeOpen');
-  const eyeOff = document.getElementById('eyeOff');
-  if (pw.type === 'password') {
-    pw.type = 'text';
-    eyeOpen.style.display = 'none';
-    eyeOff.style.display = 'block';
-  } else {
-    pw.type = 'password';
-    eyeOpen.style.display = 'block';
-    eyeOff.style.display = 'none';
-  }
+  const pw = document.getElementById('loginPassword'), eo = document.getElementById('eyeOpen'), ef = document.getElementById('eyeOff');
+  const show = pw.type === 'password'; pw.type = show ? 'text' : 'password';
+  eo.style.display = show ? 'none' : 'block'; ef.style.display = show ? 'block' : 'none';
 });
 
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  hideLoginError();
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); hideLoginError();
   if (isLockedOut()) { showLockout(); return; }
   const username = document.getElementById('loginUser').value.trim();
   const password = document.getElementById('loginPassword').value;
   const remember = document.getElementById('rememberMe').checked;
-  if (!username || !password) {
-    showLoginError('Please enter both username and password.');
-    return;
-  }
+  if (!username || !password) { showLoginError('Enter both username and password.'); return; }
   setLoginLoading(true);
-  await new Promise(r => setTimeout(r, 450));
+  await new Promise(r => setTimeout(r, 400));
   const ok = await attemptLogin(username, password);
   setLoginLoading(false);
   if (ok) {
-    localStorage.setItem(FAILS_KEY, '0');
-    failedAttempts = 0;
+    localStorage.setItem(FAILS_KEY, '0'); failedAttempts = 0;
     const session = { user: username, started: Date.now(), remember };
     if (remember) localStorage.setItem(AUTH_KEY, JSON.stringify(session));
     else sessionStorage.setItem(AUTH_KEY, JSON.stringify(session));
     enterAdmin(session);
   } else {
-    failedAttempts++;
-    localStorage.setItem(FAILS_KEY, failedAttempts);
-    if (failedAttempts >= MAX_FAILS) {
-      startLockout();
-      showLoginError('Too many failed attempts. Locked for 30 seconds.');
-    } else {
-      showLoginError(`Incorrect credentials. ${MAX_FAILS - failedAttempts} attempt(s) left.`);
-    }
+    failedAttempts++; localStorage.setItem(FAILS_KEY, failedAttempts);
+    if (failedAttempts >= MAX_FAILS) { startLockout(); showLoginError('Too many attempts. Locked for 30s.'); }
+    else showLoginError(`Incorrect credentials. ${MAX_FAILS - failedAttempts} left.`);
   }
 });
 
 function enterAdmin(session) {
-  loginScreen.classList.add('hidden');
+  document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPassword').value = '';
-  document.getElementById('rememberMe').checked = false;
-  document.getElementById('pwToggle').click();
-  if (session && session.user) {
+  if (session) {
     document.getElementById('topbarUser').textContent = session.user;
-    const initials = session.user.slice(0,2).toUpperCase();
-    document.getElementById('topbarAvatar').textContent = initials;
+    document.getElementById('topbarAvatar').textContent = session.user.slice(0,2).toUpperCase();
     document.getElementById('secUser').textContent = session.user;
     document.getElementById('secSession').textContent = new Date(session.started).toLocaleString();
     document.getElementById('secRemember').textContent = session.remember ? 'Yes' : 'No (session only)';
   }
   initAdmin();
 }
+function logout() { localStorage.removeItem(AUTH_KEY); sessionStorage.removeItem(AUTH_KEY); location.reload(); }
 
-function logout() {
-  localStorage.removeItem(AUTH_KEY);
-  sessionStorage.removeItem(AUTH_KEY);
-  location.reload();
-}
-
-(function restoreSession() {
+(async function restoreSession() {
+  await migrateLegacyIfNeeded().catch(()=>{});
   let session = null;
-  try {
-    session = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null')
-           || JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null');
-  } catch {}
-  if (session && session.user) {
-    enterAdmin(session);
-  } else {
-    document.getElementById('loginUser').focus();
-  }
+  try { session = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null') || JSON.parse(sessionStorage.getItem(AUTH_KEY) || 'null'); } catch {}
+  if (session && session.user) enterAdmin(session);
+  else document.getElementById('loginUser').focus();
+  if (isLockedOut()) showLockout();
 })();
 
-if (isLockedOut()) showLockout();
-
 /* ═══════════════════════════════════════════════════════════════
-   INDEXEDDB — for media (logos, photos, uploads)
-   Stores blobs / data URLs without the 5MB localStorage cap.
+   DEFAULTS (kept byte-identical to index.html)
    ═══════════════════════════════════════════════════════════════ */
-const IDB_NAME = 'arcdigital_media_db';
-const IDB_VERSION = 1;
-const IDB_STORE = 'media';
-let idbPromise = null;
-
-function openIDB() {
-  if (idbPromise) return idbPromise;
-  idbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(IDB_STORE)) {
-        db.createObjectStore(IDB_STORE, { keyPath: 'key' });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-  return idbPromise;
-}
-
-async function idbPut(key, dataUrl) {
-  const db = await openIDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put({ key, dataUrl, updated: Date.now() });
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function idbGet(key) {
-  const db = await openIDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readonly');
-    const req = tx.objectStore(IDB_STORE).get(key);
-    req.onsuccess = () => resolve(req.result ? req.result.dataUrl : null);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function idbDelete(key) {
-  const db = await openIDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).delete(key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function idbListKeys() {
-  const db = await openIDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readonly');
-    const req = tx.objectStore(IDB_STORE).getAllKeys();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function idbEstimateSize() {
-  if (navigator.storage && navigator.storage.estimate) {
-    try {
-      const est = await navigator.storage.estimate();
-      return { usage: est.usage || 0, quota: est.quota || 0 };
-    } catch {}
-  }
-  return { usage: 0, quota: 0 };
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ADMIN DATA LAYER — settings stay in localStorage
-   ═══════════════════════════════════════════════════════════════ */
-const LS_KEY = 'arcdigital_admin_v1';
-
-const DEFAULTS = {
-  site: {
-    title: 'ArcDigital — Custom Software, Built in Liberia',
-    desc: "I'm a developer in Liberia. I build custom management systems — schools, hospitals, HR, inventory, restaurants, churches, hotels and more. ArcDigital is my flagship. Call 0761 980 718.",
-    theme: '#1a1410',
-    demoUrl: 'https://archieswen01-art.github.io/ArcSchool/',
-    logoKey: '',
-    faviconKey: '',
-  },
-  hero: {
-    line1: 'Custom software for',
-    rotWords: 'schools, clinics, shops, restaurants, churches, hotels, your business',
-    line3: 'built right here in Liberia.',
-    sub: 'Ready-to-adapt systems for schools, clinics, shops, restaurants, churches and more. Full source code handed over. One phone call to get started.',
-    badge: 'Available for new projects · Liberia',
-  },
-  contact: {
-    phone1: '0761 980 718',
-    phone2: '0888 133 667',
-    wa1: '231761980718',
-    wa2: '231888133667',
-    email: 'hello@arcdigital.app',
-    hours: 'Mon–Sat · 8:00 AM – 8:00 PM',
-  },
-  stats: [
-    { label: 'Product lines', count: '10', suffix: '+' },
-    { label: 'Modules shipped', count: '100', suffix: '+' },
-    { label: 'Source code yours', count: '100', suffix: '%' },
-    { label: 'Response time', count: '24', suffix: 'h' },
-  ],
+const DEFAULT_COPY = {
+  meta: { titleTemplate:'ArcDigital — Custom Software, Built in Liberia', metaDescription:"I'm a developer in Liberia. I build custom management systems — schools, hospitals, HR, inventory, restaurants, churches, hotels and more. ArcDigital is my flagship. Call 0761 980 718.", ogType:'website', ogImage:'' },
+  nav: { brandFirst:'Arc', brandSecond:'Digital', links:[{id:'catalog',label:'Projects',visible:true},{id:'demo',label:'Live demo',visible:true},{id:'services',label:'Services',visible:true},{id:'about',label:'About',visible:true},{id:'team',label:'Team',visible:true},{id:'process',label:'Process',visible:true},{id:'contact',label:'Contact',visible:true}], adminLinkLabel:'Admin', adminLinkHref:'admin.html', callCtaLabel:'Call', hireCtaLabel:'Hire me', menuAriaLabel:'Open menu', adminMobileLabel:'⚙️ Admin dashboard' },
+  hero: { badge:'Available for new projects · Liberia', line1:'Custom software for', rotWords:'schools, clinics, shops, restaurants, churches, hotels, your business', line3:'built right here in Liberia.', sub:'Ready-to-adapt systems for schools, clinics, shops, restaurants, churches and more. Full source code handed over. One phone call to get started.', ctaPrimary:'Open live demo', ctaSecondary:'Browse all projects', ctaPhoneLabel:'Call about it', previewCaption:'Swipe, drag, or use the arrows', prevAria:'Previous project', nextAria:'Next project' },
+  stats: [{count:'10',suffix:'+',label:'Product lines'},{count:'100',suffix:'+',label:'Modules shipped'},{count:'100',suffix:'%',label:'Source code yours'},{count:'24',suffix:'h',label:'Response time'}],
   marquee: 'Schools, Clinics, Pharmacies, Restaurants, Churches, Susu clubs, Hotels, Landlords, Contractors, Shops, NGOs, Offices, Community groups',
-  projects: [
-    { id:'school', icon:'school', name:'Arc', accent:'Digital', sub:'School SMS', tag:'Flagship product', cat:'Education', chips:['32 modules','4 roles','AI grading','18 themes'], c1:'#fdba74', c2:'#f97316', c3:'#c2410c', link:'https://archieswen01-art.github.io/ArcSchool/', desc:'The complete school management platform. Enrolment, fees, results, attendance, timetables, ID cards, transcripts, AI-graded quizzes — 32 modules, 4 roles, one system.' },
-    { id:'hospital', icon:'hospital', name:'Medi', accent:'Core', sub:'Hospital MS', tag:'Healthcare', cat:'Health', chips:['Patients','Appointments','Pharmacy','Billing'], c1:'#6ee7b7', c2:'#10b981', c3:'#047857', link:'', desc:'Patient records, appointments, prescriptions, lab results, billing and staff scheduling — everything a clinic or hospital needs to run calm, safe and paperless.' },
-    { id:'hr', icon:'hr', name:'People', accent:'Hub', sub:'HR System', tag:'Human resources', cat:'Business', chips:['Staff records','Payroll','Leave','Reviews'], c1:'#7dd3fc', c2:'#0ea5e9', c3:'#0369a1', link:'', desc:'Employee records, attendance, leave, payroll, performance reviews and recruitment. Built for growing companies that have outgrown spreadsheets.' },
-    { id:'inventory', icon:'inventory', name:'Stock', accent:'Flow', sub:'Inventory + POS', tag:'Retail & inventory', cat:'Business', chips:['Stock','POS','Receipts','Reports'], c1:'#c4b5fd', c2:'#8b5cf6', c3:'#6d28d9', link:'', desc:"Track stock across multiple locations, ring up sales at the counter, print receipts, and see what's selling — all from one dashboard." },
-    { id:'restaurant', icon:'restaurant', name:'Order', accent:'Up', sub:'Restaurant POS', tag:'Food & hospitality', cat:'Business', chips:['Tables','Kitchen','Bills','Reports'], c1:'#fda4af', c2:'#f43f5e', c3:'#be123c', link:'', desc:'Table-side ordering, kitchen tickets, menu management, split bills and daily sales reports. For restaurants that move fast and hate mistakes.' },
-    { id:'church', icon:'church', name:'Congre', accent:'gate', sub:'Church & Chama', tag:'Community & faith', cat:'Community', chips:['Members','Contributions','Welfare','Events'], c1:'#fcd34d', c2:'#f59e0b', c3:'#b45309', link:'', desc:'Member registry, contributions and tithes, attendance at services, events, welfare (chama) balances — for churches, mosques and community saving groups.' },
-    { id:'property', icon:'property', name:'Home', accent:'Base', sub:'Property & Rent', tag:'Real estate', cat:'Property', chips:['Tenants','Rent','Receipts','Maintenance'], c1:'#5eead4', c2:'#14b8a6', c3:'#0f766e', link:'', desc:'Tenants, leases, rent collection, receipts and maintenance requests — know who has paid and who has not, at a glance, with clean reports for landlords.' },
-    { id:'hotel', icon:'hotel', name:'Stay', accent:'Ease', sub:'Hotel & Guest House', tag:'Hospitality', cat:'Business', chips:['Bookings','Rooms','Invoices','Occupancy'], c1:'#f0abfc', c2:'#d946ef', c3:'#a21caf', link:'', desc:'Room bookings, check-in and check-out, housekeeping, invoices and occupancy reports. Fewer double-bookings, happier guests.' },
-    { id:'savings', icon:'savings', name:'Cash', accent:'Circle', sub:'Savings & Susu', tag:'Savings groups', cat:'Community', chips:['Savings','Loans','Payouts','Statements'], c1:'#bef264', c2:'#84cc16', c3:'#4d7c0f', link:'', desc:'Member savings, rotating payouts, loans with repayment schedules and clean statements — for susu clubs, village savings groups and small lenders.' },
-    { id:'build', icon:'build', name:'Build', accent:'Cost', sub:'Construction Estimator', tag:'Construction', cat:'Property', chips:['USD & LRD','PDF reports','Excel export','Foundation · Roofing'], c1:'#93c5fd', c2:'#3b82f6', c3:'#1d4ed8', link:'', desc:'Estimate foundations, walls and roofing in USD or LRD, then print a clean client report or export the full breakdown to Excel.' },
-  ],
-  team: [
-    { id:'t1', role:'Founder', title:'Founder & Lead Developer', name:'[Your Name]', init:'AD', photoKey:'', bio:'Architect of ArcDigital. Writes the backend, ships the frontend, answers the phone. Started this to fix a problem he kept seeing in Liberian schools.', c1:'#fdba74', c2:'#f97316', c3:'#c2410c', links:'phone|tel:0761980718|Call\nwa|https://wa.me/231761980718|WhatsApp\nin|#|LinkedIn\ngh|#|GitHub' },
-    { id:'t2', role:'Design', title:'Lead Designer', name:'[Team Member]', init:'DS', photoKey:'', bio:'Draws the interfaces you actually enjoy using. Turns messy admin requirements into clean screens — dark mode included, obviously.', c1:'#f0abfc', c2:'#d946ef', c3:'#a21caf', links:'phone|tel:0888133667|Call\nig|#|Instagram\nin|#|LinkedIn' },
-    { id:'t3', role:'Backend', title:'Backend Engineer', name:'[Team Member]', init:'BE', photoKey:'', bio:"Keeps the database fast and the APIs honest. Sleuths down bugs at 2am. If a receipt prints or a report card loads, that's usually him.", c1:'#7dd3fc', c2:'#0ea5e9', c3:'#0369a1', links:'gh|#|GitHub\nin|#|LinkedIn' },
-    { id:'t4', role:'Mobile', title:'Mobile Engineer', name:'[Team Member]', init:'ME', photoKey:'', bio:"Makes sure ArcDigital works on the cheapest Android phone on the worst network. Parents check fees on the bus — that's on her.", c1:'#6ee7b7', c2:'#10b981', c3:'#047857', links:'gh|#|GitHub\nin|#|LinkedIn' },
-    { id:'t5', role:'Support', title:'Client Success', name:'[Team Member]', init:'CS', photoKey:'', bio:"Answers the phone when a principal can't log in 5 minutes before report cards go out. Onboards every new school personally.", c1:'#fcd34d', c2:'#f59e0b', c3:'#b45309', links:'phone|tel:0761980718|Call\nmail|mailto:hello@arcdigital.app|Email\nwa|https://wa.me/231761980718|WhatsApp' },
-  ],
-  services: [
-    { id:'s1', icon:'school', title:'School management', desc:'Full K-12 platforms: enrolment, fees, results, attendance, timetables, ID cards, transcripts — the whole thing.' },
-    { id:'s2', icon:'hospital', title:'Hospital & clinic systems', desc:'Patient records, appointments, prescriptions, lab results, staff scheduling, billing — safe and paperless.' },
-    { id:'s3', icon:'hr', title:'HR & payroll', desc:'Staff records, attendance, leave, payroll, performance reviews, recruitment — for growing companies.' },
-    { id:'s4', icon:'inventory', title:'Inventory & POS', desc:'Stock across locations, counter sales, receipts, daily reports — for shops and pharmacies.' },
-    { id:'s5', icon:'restaurant', title:'Restaurants & hotels', desc:'Table-side orders, kitchen tickets, room bookings, invoices and occupancy — hospitality without the chaos.' },
-    { id:'s6', icon:'church', title:'Church, chama & susu', desc:'Member registry, contributions, welfare balances, savings and loans, events and attendance.' },
-    { id:'s7', icon:'property', title:'Property & rent', desc:'Tenants, leases, rent collection, receipts and maintenance — know who has paid at a glance.' },
-    { id:'s8', icon:'build', title:'Construction estimating', desc:'Foundation, walls and roofing estimates in USD or LRD, with printable reports and Excel export.' },
-    { id:'s9', icon:'idea', title:'Bring your own idea', desc:"Have something else in mind? Describe it in one call and I'll tell you honestly what it takes." },
-  ],
-  media: [], // list of { id, name, key, size, type } — actual data is in IndexedDB
+  catalog: { eyebrow:'Projects', h2Pre:'Every product, ', h2Gradient:'one place.', lead:"Pick one to preview, open the live project, or tell me how you'd change it. Every system is built to be adapted to you.", filterAllLabel:'All', filterAria:'Filter projects', previewBtn:'Preview', viewBtn:'View project', comingSoonBtn:'Demo coming soon', previewAriaPrefix:'Preview ' },
+  demo: { eyebrow:'Live demo', h2Pre:'See it running — ', h2Gradient:'not just screenshots.', lead:'Explore the working system in your browser. Open it on your phone or your laptop, click through the screens, and see how your school, clinic or business could run on it.', bullets:['Runs in the browser — nothing to install','Works on a phone, tablet or computer',"Call me and I'll walk you through it"], ctaPrimary:'Open live demo', ctaCopy:'Copy link', copiedToast:'Demo link copied', copyFailToast:'Could not copy — long-press the link instead', caption:'Illustrative layout with sample numbers — open the live demo for the real thing.', mockup:{ sidebarBrand:'ArcDigital', sidebarActive:'Dashboard', sidebarItems:['Enrolment','Fees','Results','Attendance','Timetable'], pageTitle:'Overview', avatarText:'AD', cards:[{label:'Students',value:'1,248',delta:'▲ enrolled',deltaColor:'emerald'},{label:'Fees paid',value:'86%',delta:'▲ this term',deltaColor:'emerald'},{label:'Attendance',value:'94%',delta:'● today',deltaColor:'sky'}], chartBars:[38,55,44,70,62,86,74], toastTop:'Fee payment recorded', toastBot:'Quiz graded instantly', toastBotIcon:'AI' } },
+  services: { eyebrow:'What I build', h2Pre:'Not just schools — ', h2Gradient:'any web system you need.', lead:'School management is my flagship, but I also build hospital systems, HR tools, inventory and POS, member registries, rent and hotel management, and any web idea that fits what you do.' },
+  about: { eyebrow:'About', h2Pre:'One developer, ', h2Gradient:'a small team,', h2Post:' a lot of shipped software.', lead:"We're a small studio based in Liberia building the software that schools, clinics, shops and community groups actually need — no bloat, no seat licenses, no vendor lock-in.", paragraphs:['<strong class="text-white">ArcDigital started with a simple frustration.</strong> Schools were running on spreadsheets, paper registers and WhatsApp groups — losing track of fees, grades, and students who needed help. The software available was either too expensive, too generic, or built for a country that wasn\'t ours.','So we built our own. ArcDigital now powers 32 modules across schools in Liberia — enrolment, fees, results, attendance, ID cards, timetables, AI-graded quizzes, transcripts, elections, chat. Real working software, used daily.','From there we applied the same principles to other industries: <strong class="text-white">a hospital system for a clinic that had no way to track patients</strong>. <strong class="text-white">An HR tool for a business drowning in paperwork</strong>. <strong class="text-white">A POS for a restaurant that lost money every time the till ran out of receipt paper</strong>. Every product line in this portfolio exists because someone needed it.','We ship the full source code. We deploy on infrastructure you can afford. We stay available after launch. That\'s the whole promise.'], valueCards:[{icon:'cap',title:'Built for here',body:'Designed for Liberian schools, clinics and shops — not Silicon Valley.'},{icon:'check',title:'You own the code',body:'Full source handover at launch. No lock-in, no license traps.'},{icon:'clock',title:'Fast & honest',body:'Fixed quote, fixed timeline, one call to reach me.'}], founder:{ name:'Founder & Lead Developer', location:'ArcDigital · Monrovia, Liberia', quote:'"I build software I wish existed when I was helping a school without it. Every module in ArcDigital exists because someone needed it."', photoUrl:'', initials:'AD', callCta:'Call', waCta:'WhatsApp' }, timelineEyebrow:'How we got here', timeline:[{year:'2022',title:'First school',body:'Built ArcDigital for one school. 3 modules. Zero budget. Worked perfectly.',color:'brand'},{year:'2023',title:'Full platform',body:'Grew to 32 modules. Added fees, attendance, timetables, ID cards, transcripts.',color:'amber'},{year:'2024',title:'Beyond schools',body:'Hospital, HR, inventory, restaurant, and church products added.',color:'emerald'},{year:'Today',title:'Your idea next',body:'Small team, still hands-on. Every project gets the same care.',color:'sky'}] },
+  team: { eyebrow:'The team', h2Pre:'Small team. ', h2Gradient:'Real people.', h2Post:' Ships fast.', lead:"Five people. That's the whole company. You talk directly to the person building your software — no account managers, no middlemen.", emailPrompt:'Prefer email?', join:{ badge:"We're hiring", h3Line1:'Want to join', h3Line2:'the small team?', body:"We hire slowly and carefully. If you write clean code, design with restraint, or love supporting users — we'd like to hear from you.", cta:'Message us' } },
+  process: { eyebrow:'How we work', h2Pre:'From a call to ', h2Gradient:'a live system.', lead:'Simple, honest, no surprises.', steps:[{num:'1',color:'brand',title:'Call or WhatsApp',body:'Tell me what you need. One call is usually enough to scope it out.'},{num:'2',color:'amber',title:'Fixed quote',body:'You get one number, one timeline. No hidden costs, no scope creep.'},{num:'3',color:'emerald',title:'Build & demo',body:'I send you a live staging link. You click around, we adjust together.'},{num:'4',color:'sky',title:'Launch & hand-off',body:'I deploy it, hand over the full source code, and walk you through admin controls.'}] },
+  contact: { eyebrow:'Talk to me', h2Pre:'One call is all it takes ', h2Gradient:'to get started.', lead:"No forms. No waiting. Call or message me directly on WhatsApp and I'll tell you honestly whether I can build it.", primaryTag:'Primary line', secondaryTag:'Secondary line', speakToLabel:'Speak to', speakToName1:'ArcDigital Developer', speakToName2:'ArcDigital Developer', callCta:'Call', waCta:'WhatsApp', trustBadges:['Free consultation','Fixed pricing','Full source code handover'], phone1:'0761 980 718', phone2:'0888 133 667', wa1:'231761980718', wa2:'231888133667', email:'hello@arcdigital.app', hours:'Mon–Sat · 8:00 AM – 8:00 PM' },
+  footer: { brandFirst:'Arc', brandSecond:'Digital', tagline:'Custom software built by a developer in Liberia. Ten product lines, one team, any idea welcome.', colProjects:'Projects', colMore:'More', colContact:'Get in touch', moreLinks:[{label:'Live demo',href:'#demo'},{label:'About',href:'#about'},{label:'Team',href:'#team'},{label:'Services',href:'#services'},{label:'Process',href:'#process'},{label:'Contact',href:'#contact'},{label:'Admin dashboard',href:'admin.html',icon:'cog'}], copyright:'© {year} ArcDigital. Built by a developer in Liberia.', legal:"Any web idea welcome. Let's build yours." },
+  a11y: { menuAriaLabel:'Open menu', closeMenuAria:'Close menu', slideshowAria:'Project showcase', callAria:'Call', whatsappAria:'Chat on WhatsApp' },
 };
 
-let state = load();
+const DEFAULTS = {
+  copy: DEFAULT_COPY,
+  projects: [
+    { id:'school', icon:'school', name:'Arc', accent:'Digital', sub:'School SMS', tag:'Flagship product', cat:'Education', chips:['32 modules','4 roles','AI grading','18 themes'], c1:'#fdba74', c2:'#f97316', c3:'#c2410c', link:'https://archieswen01-art.github.io/ArcSchool/', desc:'The complete school management platform. Enrolment, fees, results, attendance, timetables, ID cards, transcripts, AI-graded quizzes — 32 modules, 4 roles, one system.' },
+    { id:'hospital', icon:'hospital', name:'Medi', accent:'Core', sub:'Hospital MS', tag:'Healthcare', cat:'Health', chips:['Patients','Appointments','Pharmacy','Billing'], c1:'#6ee7b7', c2:'#10b981', c3:'#047857', link:'', desc:'Patient records, appointments, prescriptions, lab results, billing and staff scheduling.' },
+    { id:'hr', icon:'hr', name:'People', accent:'Hub', sub:'HR System', tag:'Human resources', cat:'Business', chips:['Staff records','Payroll','Leave','Reviews'], c1:'#7dd3fc', c2:'#0ea5e9', c3:'#0369a1', link:'', desc:'Employee records, attendance, leave, payroll, performance reviews and recruitment.' },
+    { id:'inventory', icon:'inventory', name:'Stock', accent:'Flow', sub:'Inventory + POS', tag:'Retail & inventory', cat:'Business', chips:['Stock','POS','Receipts','Reports'], c1:'#c4b5fd', c2:'#8b5cf6', c3:'#6d28d9', link:'', desc:'Track stock, ring up sales, print receipts, and see what\'s selling.' },
+    { id:'restaurant', icon:'restaurant', name:'Order', accent:'Up', sub:'Restaurant POS', tag:'Food & hospitality', cat:'Business', chips:['Tables','Kitchen','Bills','Reports'], c1:'#fda4af', c2:'#f43f5e', c3:'#be123c', link:'', desc:'Table-side ordering, kitchen tickets, menu management, split bills and daily sales reports.' },
+    { id:'church', icon:'church', name:'Congre', accent:'gate', sub:'Church & Chama', tag:'Community & faith', cat:'Community', chips:['Members','Contributions','Welfare','Events'], c1:'#fcd34d', c2:'#f59e0b', c3:'#b45309', link:'', desc:'Member registry, contributions, welfare balances — for churches and community groups.' },
+    { id:'property', icon:'property', name:'Home', accent:'Base', sub:'Property & Rent', tag:'Real estate', cat:'Property', chips:['Tenants','Rent','Receipts','Maintenance'], c1:'#5eead4', c2:'#14b8a6', c3:'#0f766e', link:'', desc:'Tenants, leases, rent collection, receipts and maintenance — know who has paid.' },
+    { id:'hotel', icon:'hotel', name:'Stay', accent:'Ease', sub:'Hotel & Guest House', tag:'Hospitality', cat:'Business', chips:['Bookings','Rooms','Invoices','Occupancy'], c1:'#f0abfc', c2:'#d946ef', c3:'#a21caf', link:'', desc:'Room bookings, check-in and check-out, housekeeping, invoices and occupancy.' },
+    { id:'savings', icon:'savings', name:'Cash', accent:'Circle', sub:'Savings & Susu', tag:'Savings groups', cat:'Community', chips:['Savings','Loans','Payouts','Statements'], c1:'#bef264', c2:'#84cc16', c3:'#4d7c0f', link:'', desc:'Member savings, rotating payouts, loans with repayment schedules and clean statements.' },
+    { id:'build', icon:'build', name:'Build', accent:'Cost', sub:'Construction Estimator', tag:'Construction', cat:'Property', chips:['USD & LRD','PDF reports','Excel export','Foundation · Roofing'], c1:'#93c5fd', c2:'#3b82f6', c3:'#1d4ed8', link:'', desc:'Estimate foundations, walls and roofing in USD or LRD, then print a clean client report.' },
+  ],
+  team: [
+    { id:'t1', role:'Founder', title:'Founder & Lead Developer', name:'[Your Name]', init:'AD', photoKey:'', bio:'Architect of ArcDigital. Writes the backend, ships the frontend, answers the phone.', c1:'#fdba74', c2:'#f97316', c3:'#c2410c', links:'phone|tel:0761980718|Call\nwa|https://wa.me/231761980718|WhatsApp\nin|#|LinkedIn\ngh|#|GitHub' },
+    { id:'t2', role:'Design', title:'Lead Designer', name:'[Team Member]', init:'DS', photoKey:'', bio:'Draws the interfaces you actually enjoy using.', c1:'#f0abfc', c2:'#d946ef', c3:'#a21caf', links:'phone|tel:0888133667|Call\nig|#|Instagram\nin|#|LinkedIn' },
+    { id:'t3', role:'Backend', title:'Backend Engineer', name:'[Team Member]', init:'BE', photoKey:'', bio:"Keeps the database fast and the APIs honest.", c1:'#7dd3fc', c2:'#0ea5e9', c3:'#0369a1', links:'gh|#|GitHub\nin|#|LinkedIn' },
+    { id:'t4', role:'Mobile', title:'Mobile Engineer', name:'[Team Member]', init:'ME', photoKey:'', bio:"Makes sure ArcDigital works on the cheapest Android phone on the worst network.", c1:'#6ee7b7', c2:'#10b981', c3:'#047857', links:'gh|#|GitHub\nin|#|LinkedIn' },
+    { id:'t5', role:'Support', title:'Client Success', name:'[Team Member]', init:'CS', photoKey:'', bio:"Answers the phone when a principal can't log in 5 minutes before report cards go out.", c1:'#fcd34d', c2:'#f59e0b', c3:'#b45309', links:'phone|tel:0761980718|Call\nmail|mailto:hello@arcdigital.app|Email\nwa|https://wa.me/231761980718|WhatsApp' },
+  ],
+  services: [
+    { id:'s1', icon:'school', title:'School management', desc:'Full K-12 platforms: enrolment, fees, results, attendance, timetables, ID cards, transcripts.' },
+    { id:'s2', icon:'hospital', title:'Hospital & clinic systems', desc:'Patient records, appointments, prescriptions, lab results, staff scheduling, billing.' },
+    { id:'s3', icon:'hr', title:'HR & payroll', desc:'Staff records, attendance, leave, payroll, performance reviews, recruitment.' },
+    { id:'s4', icon:'inventory', title:'Inventory & POS', desc:'Stock across locations, counter sales, receipts, daily reports.' },
+    { id:'s5', icon:'restaurant', title:'Restaurants & hotels', desc:'Table-side orders, kitchen tickets, room bookings, invoices and occupancy.' },
+    { id:'s6', icon:'church', title:'Church, chama & susu', desc:'Member registry, contributions, welfare balances, savings and loans, events.' },
+    { id:'s7', icon:'property', title:'Property & rent', desc:'Tenants, leases, rent collection, receipts and maintenance.' },
+    { id:'s8', icon:'build', title:'Construction estimating', desc:'Foundation, walls and roofing estimates in USD or LRD, with printable reports.' },
+    { id:'s9', icon:'idea', title:'Bring your own idea', desc:"Have something else in mind? Describe it in one call and I'll tell you honestly what it takes." },
+  ],
+  site: { theme:'#1a1410', demoUrl:'https://archieswen01-art.github.io/ArcSchool/', logoKey:'', faviconKey:'' },
+  media: [],
+};
 
-function load() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return structuredClone(DEFAULTS);
-    const parsed = JSON.parse(raw);
-    return { ...structuredClone(DEFAULTS), ...parsed,
-      site:    { ...DEFAULTS.site,    ...(parsed.site||{}) },
-      hero:    { ...DEFAULTS.hero,    ...(parsed.hero||{}) },
-      contact: { ...DEFAULTS.contact, ...(parsed.contact||{}) },
-      stats:   Array.isArray(parsed.stats)   ? parsed.stats   : structuredClone(DEFAULTS.stats),
-      projects:Array.isArray(parsed.projects)? parsed.projects: structuredClone(DEFAULTS.projects),
-      team:    Array.isArray(parsed.team)    ? parsed.team    : structuredClone(DEFAULTS.team),
-      services:Array.isArray(parsed.services)? parsed.services: structuredClone(DEFAULTS.services),
-      media:   Array.isArray(parsed.media)   ? parsed.media   : [],
-    };
-  } catch { return structuredClone(DEFAULTS); }
+function mergeCopy(saved) {
+  const d = structuredClone(DEFAULT_COPY);
+  if (!saved || typeof saved !== 'object') return d;
+  const walk = (target, src) => {
+    if (!src || typeof src !== 'object') return target;
+    for (const k of Object.keys(src)) {
+      const sv = src[k];
+      if (Array.isArray(sv)) target[k] = sv;
+      else if (sv && typeof sv === 'object') { if (!target[k] || typeof target[k] !== 'object' || Array.isArray(target[k])) target[k] = {}; walk(target[k], sv); }
+      else target[k] = sv;
+    }
+    return target;
+  };
+  return walk(d, saved);
 }
 
-function save() {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
-    markSaved();
-  } catch (e) {
-    // Should rarely happen now that media isn't in here
-    toast('Storage full — settings too large. Try exporting and resetting.', 'error');
-    console.error(e);
+/* ═══════════════════════════════════════════════════════════════
+   SHARED HELPERS (same semantics as index.html)
+   ═══════════════════════════════════════════════════════════════ */
+function uid(p='id') { return p + '_' + Math.random().toString(36).slice(2,9); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function safeHref(url) { if (!url) return ''; const t = String(url).trim().toLowerCase(); if (t.startsWith('javascript:') || t.startsWith('data:text/html') || t.startsWith('vbscript:')) return ''; return url; }
+
+/* Coerce to array — protects against strings, nulls, and other shapes */
+const asArray = v => {
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string') return v.split(',').map(s => s.trim()).filter(Boolean);
+  return [];
+};
+
+/* Normalize team links into [[icon, href, label], …] regardless of input shape */
+function normalizeTeamLinks(links) {
+  if (Array.isArray(links)) {
+    return links
+      .filter(Array.isArray)
+      .map(a => a.map(x => String(x == null ? '' : x).trim()))
+      .filter(a => a.length >= 2);
   }
+  if (typeof links === 'string') {
+    return links
+      .split('\n')
+      .map(line => line.split('|').map(s => s.trim()))
+      .filter(a => a.length >= 2);
+  }
+  return [];
 }
 
-function markSaved() {
-  const el = document.getElementById('saveStatus');
-  el.style.opacity = '1';
-  clearTimeout(markSaved._t);
-  markSaved._t = setTimeout(() => { el.style.opacity = '0'; }, 1600);
+/* Turn a team member (whatever shape came in) into a consistent one */
+function normalizeTeamMember(t) {
+  return {
+    ...t,
+    c1: t.c1 || (t.pal && t.pal[0]) || '#fdba74',
+    c2: t.c2 || (t.pal && t.pal[1]) || '#f97316',
+    c3: t.c3 || (t.pal && t.pal[2]) || '#c2410c',
+    links: normalizeTeamLinks(t.links),
+  };
 }
 
-function uid(prefix='id') { return prefix + '_' + Math.random().toString(36).slice(2,9); }
+/* Turn a service (array-shaped or object-shaped) into an object */
+function normalizeService(s) {
+  if (Array.isArray(s)) return { id: s[0] || '', icon: s[0] || 'idea', title: s[1] || '', desc: s[2] || '' };
+  return { id: s.id || '', icon: s.icon || 'idea', title: s.title || '', desc: s.desc || '' };
+}
 
-/* ───────── toast ───────── */
+/* Turn a project (whatever shape) into a consistent one */
+function normalizeProject(p) {
+  return {
+    ...p,
+    c1: p.c1 || (p.pal && p.pal[0]) || '#fdba74',
+    c2: p.c2 || (p.pal && p.pal[1]) || '#f97316',
+    c3: p.c3 || (p.pal && p.pal[2]) || '#c2410c',
+    icon: p.icon || 'idea',
+    chips: asArray(p.chips),
+    link: p.link || '',
+    desc: p.desc || '',
+    name: p.name || '',
+    accent: p.accent || '',
+    sub: p.sub || '',
+    cat: p.cat || 'Other',
+    tag: p.tag || '',
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RUNTIME
+   ═══════════════════════════════════════════════════════════════ */
+let state = null;
+let __adminInitialized = false;
+let __saveDebounce = null;
+let __currentTab = 'dashboard';
+
+async function loadState() {
+  let data = null;
+  try { const rec = await dbGet(IDB_SETTINGS, SETTINGS_KEY); data = rec ? rec.data : null; } catch (e) { console.warn(e); }
+  const base = structuredClone(DEFAULTS);
+  if (!data) { state = base; return; }
+  state = {
+    ...base,
+    ...data,
+    copy: mergeCopy(data.copy),
+    projects: Array.isArray(data.projects) ? data.projects.map(normalizeProject) : base.projects.map(normalizeProject),
+    team: Array.isArray(data.team) ? data.team.map(normalizeTeamMember) : base.team.map(normalizeTeamMember),
+    services: Array.isArray(data.services) ? data.services.map(normalizeService) : base.services.map(normalizeService),
+    site: { ...base.site, ...(data.site || {}) },
+    media: Array.isArray(data.media) ? data.media : [],
+  };
+  // Back-compat: merge old shape into copy
+  if (data.hero) state.copy.hero = { ...state.copy.hero, ...data.hero };
+  if (data.contact) state.copy.contact = { ...state.copy.contact, ...data.contact };
+  if (Array.isArray(data.stats) && data.stats.length) state.copy.stats = data.stats;
+  if (data.marquee) state.copy.marquee = data.marquee;
+}
+
+function saveState() {
+  clearTimeout(__saveDebounce);
+  __saveDebounce = setTimeout(async () => {
+    try { await dbPut(IDB_SETTINGS, { key: SETTINGS_KEY, data: state, updated: Date.now() }); markSaved(); }
+    catch (e) { toast('Could not save', 'error'); console.error(e); }
+  }, 150);
+}
+function saveStateNow() {
+  clearTimeout(__saveDebounce);
+  return dbPut(IDB_SETTINGS, { key: SETTINGS_KEY, data: state, updated: Date.now() })
+    .then(markSaved)
+    .catch(e => { toast('Save failed', 'error'); console.error(e); });
+}
+function markSaved() { const el = document.getElementById('saveStatus'); if (!el) return; el.style.opacity = '1'; clearTimeout(markSaved._t); markSaved._t = setTimeout(() => { el.style.opacity = '0'; }, 1600); }
+
 function toast(msg, type='success') {
   const wrap = document.getElementById('toastWrap');
   const el = document.createElement('div');
   const bg = type === 'error' ? 'bg-red-600' : type === 'info' ? 'bg-sky-600' : 'bg-emerald-600';
   el.className = `toast ${bg} text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2`;
-  el.innerHTML = `<span>${msg}</span>`;
+  el.textContent = msg;
   wrap.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(()=>el.remove(),300); }, 2600);
 }
 
-/* ───────── tab switching ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   TABS
+   ═══════════════════════════════════════════════════════════════ */
 const TITLES = {
-  dashboard: ['Dashboard','Overview of your portfolio'],
-  projects:  ['Projects','Manage portfolio entries and demo links'],
-  team:      ['Team','People shown on the site'],
-  services:  ['Services','What you build'],
-  marquee:   ['Marquee','Scrolling industries strip'],
-  stats:     ['Stats','Hero counters'],
-  site:      ['Site settings','Title, logo, favicon, demo URL'],
-  contact:   ['Contact info','Phones, email, hours'],
-  hero:      ['Hero section','Headline, subheadline, badge'],
-  media:     ['Media library','Uploaded images (IndexedDB)'],
-  security:  ['Security','Session info and password'],
+  dashboard:['Dashboard','Overview'],
+  projects:['Projects','Portfolio entries'],
+  team:['Team','People shown on site'],
+  services:['Services','What you build'],
+  copy:['Page copy','All text on the site'],
+  site:['Site settings','Theme, demo URL, logo, favicon'],
+  media:['Media library','Uploaded images'],
+  security:['Security','Session info and password'],
 };
+
 function switchTab(name) {
+  flushCurrentTab();
+  saveState();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const tab = document.getElementById('tab-' + name);
   if (tab) tab.classList.add('active');
@@ -1159,34 +1108,33 @@ function switchTab(name) {
   const [t, s] = TITLES[name] || ['Admin',''];
   document.getElementById('pageTitle').textContent = t;
   document.getElementById('pageSub').textContent = s;
+  __currentTab = name;
   if (name === 'dashboard') renderDashboard();
   if (name === 'projects') renderProjects();
   if (name === 'team') renderTeam();
   if (name === 'services') renderServices();
-  if (name === 'marquee') loadMarquee();
-  if (name === 'stats') loadStats();
+  if (name === 'copy') renderCopyTab();
   if (name === 'site') loadSiteSettings();
-  if (name === 'contact') loadContact();
-  if (name === 'hero') loadHero();
   if (name === 'media') renderMedia();
   if (name === 'security') renderSecurity();
   toggleSidebar(false);
 }
-document.querySelectorAll('.nav-item').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-});
-function toggleSidebar(open) {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('sidebarOverlay');
-  if (open) { sb.classList.add('open'); ov.classList.add('show'); }
-  else { sb.classList.remove('open'); ov.classList.remove('show'); }
+
+function flushCurrentTab() {
+  if (__currentTab === 'site') {
+    const themeEl = document.getElementById('siteTheme');
+    const urlEl = document.getElementById('siteDemoUrl');
+    if (themeEl && themeEl.value.trim()) state.site.theme = themeEl.value.trim();
+    if (urlEl && urlEl.value.trim()) state.site.demoUrl = urlEl.value.trim();
+  }
 }
 
-/* ───────── modals ───────── */
+document.querySelectorAll('.nav-item').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+function toggleSidebar(open) { const sb = document.getElementById('sidebar'), ov = document.getElementById('sidebarOverlay'); if (open) { sb.classList.add('open'); ov.classList.add('show'); } else { sb.classList.remove('open'); ov.classList.remove('show'); } }
+
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open')); });
-
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open')); });
 function confirmAction(title, msg, onYes) {
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmMsg').textContent = msg;
@@ -1197,76 +1145,41 @@ function confirmAction(title, msg, onYes) {
   openModal('confirmModal');
 }
 
-/* ───────── storage meter ───────── */
-async function updateStorageMeter() {
-  const lsBytes = new Blob([localStorage.getItem(LS_KEY) || '']).size;
-  let idbBytes = 0;
-  try {
-    const keys = await idbListKeys();
-    for (const k of keys) {
-      const v = await idbGet(k);
-      if (v) idbBytes += new Blob([v]).size;
-    }
-  } catch {}
-  const total = lsBytes + idbBytes;
-  const est = await idbEstimateSize();
-  // Use browser quota if available, else assume 100MB for the meter scale
-  const quota = est.quota || 100 * 1024 * 1024;
-  const pct = Math.min(100, (total / quota) * 100);
-
-  const fill = document.getElementById('storageFill');
-  const pctEl = document.getElementById('storagePct');
-  const textEl = document.getElementById('storageText');
-  if (!fill) return;
-  fill.style.width = pct.toFixed(1) + '%';
-  fill.className = 'meter-fill ' + (pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-amber-500' : 'bg-emerald-500');
-  pctEl.textContent = pct < 0.1 ? '<0.1%' : pct.toFixed(1) + '%';
-
-  const fmt = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(2) + ' MB';
-  textEl.innerHTML = `<span class="text-emerald-400">localStorage:</span> ${fmt(lsBytes)} &nbsp;·&nbsp; <span class="text-sky-400">IndexedDB:</span> ${fmt(idbBytes)} &nbsp;·&nbsp; <span class="text-slate-400">Total:</span> ${fmt(total)}${est.quota ? ` of ~${fmt(quota)}` : ''}`;
-}
-
-/* ───────── dashboard ───────── */
-function renderDashboard() {
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD
+   ═══════════════════════════════════════════════════════════════ */
+async function renderDashboard() {
   document.getElementById('dashProjects').textContent = state.projects.length;
   document.getElementById('dashTeam').textContent = state.team.length;
   document.getElementById('dashServices').textContent = state.services.length;
   document.getElementById('dashLinked').textContent = state.projects.filter(p => p.link && p.link.trim()).length;
+  const setH = (id, ok) => { const el = document.getElementById(id); if (!el) return; el.className = 'badge ' + (ok ? 'badge-on' : 'badge-off'); el.textContent = ok ? 'OK' : 'Missing'; };
+  setH('healthDemo', !!(state.site.demoUrl && state.site.demoUrl.trim()));
+  setH('healthLogo', !!state.site.logoKey);
+  setH('healthPhone', !!(state.copy.contact.phone1 && state.copy.contact.phone1.trim()));
+  setH('healthTeam', state.team.length > 0 && state.team.some(t => t.photoKey));
 
-  const setHealth = (id, ok, okText='OK', badText='Missing') => {
-    const el = document.getElementById(id);
-    el.className = 'badge ' + (ok ? 'badge-on' : 'badge-off');
-    el.textContent = ok ? okText : badText;
-  };
-  setHealth('healthDemo', !!(state.site.demoUrl && state.site.demoUrl.trim()));
-  setHealth('healthLogo', !!state.site.logoKey);
-  setHealth('healthPhone', !!(state.contact.phone1 && state.contact.phone1.trim()));
-  setHealth('healthTeam', state.team.length > 0 && state.team.some(t => t.photoKey));
-
-  const wrap = document.getElementById('dashRecent');
-  const recent = state.projects.slice(0, 5);
-  if (!recent.length) { wrap.innerHTML = '<p class="text-xs text-slate-500">No projects yet.</p>'; }
-  else {
-    wrap.innerHTML = recent.map(p => `
-      <div class="flex items-center gap-3 row-card">
-        <div class="thumb" style="background:${p.c3 || '#332720'}">${(p.name||'?').slice(0,2).toUpperCase()}</div>
-        <div class="min-w-0 flex-1">
-          <p class="text-sm font-semibold truncate">${esc(p.name||'')}<span style="color:${p.c2||'#f97316'}">${esc(p.accent||'')}</span></p>
-          <p class="text-[11px] text-slate-500 truncate">${esc(p.sub||'')}</p>
-        </div>
-        <span class="badge ${p.link && p.link.trim() ? 'badge-on' : 'badge-off'}">${p.link && p.link.trim() ? 'Linked' : 'No link'}</span>
-      </div>`).join('');
+  const settingsBytes = new Blob([JSON.stringify(state)]).size;
+  const mediaBytes = state.media.reduce((s, m) => s + (m.size || 0), 0);
+  const total = settingsBytes + mediaBytes;
+  let quota = 100 * 1024 * 1024;
+  if (navigator.storage && navigator.storage.estimate) { try { const est = await navigator.storage.estimate(); quota = est.quota || quota; } catch {} }
+  const pct = Math.min(100, (total / quota) * 100);
+  const fill = document.getElementById('storageFill'), pctEl = document.getElementById('storagePct'), textEl = document.getElementById('storageText');
+  if (fill && pctEl && textEl) {
+    fill.style.width = pct.toFixed(1) + '%';
+    fill.className = 'meter-fill ' + (pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-amber-500' : 'bg-emerald-500');
+    pctEl.textContent = pct < 0.1 ? '<0.1%' : pct.toFixed(1) + '%';
+    const fmt = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(2) + ' MB';
+    textEl.innerHTML = `<span class="text-sky-400">Settings:</span> ${fmt(settingsBytes)} &nbsp;·&nbsp; <span class="text-emerald-400">Media:</span> ${fmt(mediaBytes)} &nbsp;·&nbsp; <span class="text-slate-400">Total:</span> ${fmt(total)}`;
   }
-
-  updateStorageMeter();
 }
 
-/* ───────── security ───────── */
-function renderSecurity() {
-  document.getElementById('secFails').textContent = failedAttempts;
-}
+function renderSecurity() { const el = document.getElementById('secFails'); if (el) el.textContent = failedAttempts; }
 
-/* ───────── projects ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   PROJECTS
+   ═══════════════════════════════════════════════════════════════ */
 function renderProjects() {
   const wrap = document.getElementById('projectList');
   const empty = document.getElementById('projectEmpty');
@@ -1275,33 +1188,24 @@ function renderProjects() {
   empty.classList.add('hidden');
   wrap.innerHTML = state.projects.map((p, i) => `
     <div class="row-card flex items-start gap-3">
-      <div class="drag-handle p-1 mt-1" title="Reorder">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-      </div>
-      <div class="thumb" style="background:${p.c3 || '#332720'}">${(p.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="thumb" style="background:${p.c3 || '#332720'}">${esc((p.name||'?').slice(0,2).toUpperCase())}</div>
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 flex-wrap">
           <p class="text-sm font-bold">${esc(p.name||'')}<span style="color:${p.c2||'#f97316'}">${esc(p.accent||'')}</span></p>
           <span class="badge badge-on">${esc(p.cat||'—')}</span>
           ${p.link && p.link.trim() ? '<span class="badge badge-on">Linked</span>' : '<span class="badge badge-off">No link</span>'}
         </div>
-        <p class="text-[11px] text-slate-500 mt-0.5">${esc(p.sub||'')} · ${p.chips?.length||0} chips</p>
-        ${p.link && p.link.trim() ? `<a href="${esc(p.link)}" target="_blank" class="text-[11px] text-brand-400 hover:text-brand-300 break-all inline-block mt-1">${esc(p.link)}</a>` : ''}
+        <p class="text-[11px] text-slate-500 mt-0.5">${esc(p.sub||'')} · ${asArray(p.chips).length} chips</p>
       </div>
       <div class="flex items-center gap-1 flex-shrink-0">
-        <button onclick="moveProject(${i}, -1)" class="btn btn-g btn-sm" title="Move up" ${i===0?'disabled style="opacity:.3"':''}>↑</button>
-        <button onclick="moveProject(${i}, 1)" class="btn btn-g btn-sm" title="Move down" ${i===state.projects.length-1?'disabled style="opacity:.3"':''}>↓</button>
+        <button onclick="moveProject(${i}, -1)" class="btn btn-g btn-sm" ${i===0?'disabled style="opacity:.3"':''}>↑</button>
+        <button onclick="moveProject(${i}, 1)" class="btn btn-g btn-sm" ${i===state.projects.length-1?'disabled style="opacity:.3"':''}>↓</button>
         <button onclick="openProjectModal('${p.id}')" class="btn btn-g btn-sm">Edit</button>
         <button onclick="deleteProject('${p.id}')" class="btn btn-danger btn-sm">Delete</button>
       </div>
     </div>`).join('');
 }
-function moveProject(i, dir) {
-  const j = i + dir;
-  if (j < 0 || j >= state.projects.length) return;
-  [state.projects[i], state.projects[j]] = [state.projects[j], state.projects[i]];
-  save(); renderProjects();
-}
+function moveProject(i, dir) { const j = i + dir; if (j < 0 || j >= state.projects.length) return; [state.projects[i], state.projects[j]] = [state.projects[j], state.projects[i]]; saveState(); renderProjects(); }
 function openProjectModal(id) {
   const isEdit = !!id;
   document.getElementById('projectModalTitle').textContent = isEdit ? 'Edit project' : 'Add project';
@@ -1314,7 +1218,7 @@ function openProjectModal(id) {
   document.getElementById('pTag').value = p.tag || '';
   document.getElementById('pLink').value = p.link || '';
   document.getElementById('pDesc').value = p.desc || '';
-  document.getElementById('pChips').value = (p.chips || []).join(', ');
+  document.getElementById('pChips').value = asArray(p.chips).join(', ');
   document.getElementById('pC1').value = p.c1 || '#fdba74';
   document.getElementById('pC2').value = p.c2 || '#f97316';
   document.getElementById('pC3').value = p.c3 || '#c2410c';
@@ -1327,35 +1231,37 @@ function saveProject() {
   const accent = document.getElementById('pAccent').value.trim();
   const sub = document.getElementById('pSub').value.trim();
   const cat = document.getElementById('pCat').value.trim();
-  if (!name || !accent || !sub || !cat) { toast('Name, accent, subtitle and category are required.', 'error'); return; }
+  if (!name || !accent || !sub || !cat) { toast('Name, accent, subtitle, category required.', 'error'); return; }
   const link = document.getElementById('pLink').value.trim();
-  const obj = {
-    id, name, accent, sub, cat,
+  if (link && !safeHref(link)) { toast('URL scheme not allowed', 'error'); return; }
+  const obj = normalizeProject({
+    id, name, accent, sub, cat, link,
     tag: document.getElementById('pTag').value.trim(),
-    link,
     desc: document.getElementById('pDesc').value.trim(),
-    chips: document.getElementById('pChips').value.split(',').map(s=>s.trim()).filter(Boolean),
+    chips: document.getElementById('pChips').value.split(',').map(s => s.trim()).filter(Boolean),
     c1: document.getElementById('pC1').value.trim() || '#fdba74',
     c2: document.getElementById('pC2').value.trim() || '#f97316',
     c3: document.getElementById('pC3').value.trim() || '#c2410c',
     icon: document.getElementById('pIcon').value,
-  };
+  });
   const idx = state.projects.findIndex(p => p.id === id);
   if (idx >= 0) state.projects[idx] = obj; else state.projects.push(obj);
-  save(); closeModal('projectModal'); renderProjects(); renderDashboard();
+  saveState(); closeModal('projectModal'); renderProjects(); renderDashboard();
   toast(idx >= 0 ? 'Project updated' : 'Project created');
 }
 function deleteProject(id) {
   const p = state.projects.find(x => x.id === id);
-  confirmAction('Delete project?', `"${p?.name||''}${p?.accent||''}" will be removed permanently.`, () => {
+  confirmAction('Delete project?', `"${p?.name||''}${p?.accent||''}" will be removed.`, () => {
     state.projects = state.projects.filter(x => x.id !== id);
-    save(); renderProjects(); renderDashboard();
+    saveState(); renderProjects(); renderDashboard();
     toast('Project deleted');
   });
 }
 
-/* ───────── team ───────── */
-function renderTeam() {
+/* ═══════════════════════════════════════════════════════════════
+   TEAM
+   ═══════════════════════════════════════════════════════════════ */
+async function renderTeam() {
   const wrap = document.getElementById('teamList');
   const empty = document.getElementById('teamEmpty');
   document.getElementById('teamCount').textContent = state.team.length;
@@ -1363,14 +1269,9 @@ function renderTeam() {
   empty.classList.add('hidden');
   wrap.innerHTML = state.team.map(t => `
     <div class="row-card flex items-start gap-3">
-      <div class="thumb" data-photo-key="${t.photoKey||''}">
-        ${t.photoKey ? `<img src="" alt="" class="h-full w-full object-cover" data-photo-img="${t.photoKey}" />` : (t.init || '?')}
-      </div>
+      <div class="thumb" data-photo-key="${esc(t.photoKey||'')}">${esc(t.init || '?')}</div>
       <div class="min-w-0 flex-1">
-        <div class="flex items-center gap-2 flex-wrap">
-          <p class="text-sm font-bold">${esc(t.name||'Unnamed')}</p>
-          <span class="badge badge-on">${esc(t.role||'—')}</span>
-        </div>
+        <div class="flex items-center gap-2 flex-wrap"><p class="text-sm font-bold">${esc(t.name||'Unnamed')}</p><span class="badge badge-on">${esc(t.role||'—')}</span></div>
         <p class="text-[11px] text-slate-500 mt-0.5">${esc(t.title||'')}</p>
         <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">${esc(t.bio||'')}</p>
       </div>
@@ -1379,16 +1280,12 @@ function renderTeam() {
         <button onclick="deleteTeam('${t.id}')" class="btn btn-danger btn-sm">Delete</button>
       </div>
     </div>`).join('');
-  hydratePhotos();
-}
-async function hydratePhotos() {
-  const imgs = document.querySelectorAll('[data-photo-img]');
-  for (const img of imgs) {
-    const key = img.dataset.photoImg;
-    try {
-      const url = await idbGet(key);
-      if (url) { img.src = url; img.style.display = 'block'; }
-    } catch {}
+  for (const t of state.team) {
+    if (!t.photoKey) continue;
+    const el = wrap.querySelector(`[data-photo-key="${CSS.escape(t.photoKey)}"]`);
+    if (!el) continue;
+    const url = await idbGetMedia(t.photoKey);
+    if (url) el.innerHTML = `<img src="${url}" alt="" class="h-full w-full object-cover" />`;
   }
 }
 function openTeamModal(id) {
@@ -1405,24 +1302,32 @@ function openTeamModal(id) {
   document.getElementById('tC1').value = t.c1 || '#fdba74';
   document.getElementById('tC2').value = t.c2 || '#f97316';
   document.getElementById('tC3').value = t.c3 || '#c2410c';
-  document.getElementById('tLinks').value = t.links || '';
+  // Convert array links back to the textarea format on edit
+  const linksStr = Array.isArray(t.links)
+    ? t.links.map(a => a.join('|')).join('\n')
+    : (typeof t.links === 'string' ? t.links : '');
+  document.getElementById('tLinks').value = linksStr;
   updateTeamPhotoPreview(t.photoKey);
   openModal('teamModal');
 }
 async function updateTeamPhotoPreview(photoKey) {
   const img = document.getElementById('tPhotoPreview');
   const ph = document.getElementById('tPhotoPlaceholder');
+  if (!img) return;
   if (photoKey) {
-    const url = await idbGet(photoKey);
-    if (url) { img.src = url; img.classList.remove('hidden'); ph.classList.add('hidden'); return; }
+    const url = await idbGetMedia(photoKey);
+    if (url) { img.src = url; img.classList.remove('hidden'); if (ph) ph.classList.add('hidden'); return; }
   }
-  img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden');
+  img.removeAttribute('src'); img.classList.add('hidden');
+  if (ph) ph.classList.remove('hidden');
 }
 async function handleTeamPhoto(e) {
   const file = e.target.files[0]; if (!file) return;
   fileToDataURL(file, 5 * 1024 * 1024).then(async url => {
+    const oldKey = document.getElementById('tPhoto').value;
     const key = 'team_' + uid('p');
-    await idbPut(key, url);
+    await idbPutMedia(key, url);
+    if (oldKey) { try { await dbDelete(IDB_MEDIA, oldKey); } catch {} }
     document.getElementById('tPhoto').value = key;
     updateTeamPhotoPreview(key);
     toast('Photo uploaded');
@@ -1431,15 +1336,15 @@ async function handleTeamPhoto(e) {
 }
 async function removeTeamPhoto() {
   const key = document.getElementById('tPhoto').value;
-  if (key) { try { await idbDelete(key); } catch {} }
+  if (key) { try { await dbDelete(IDB_MEDIA, key); } catch {} }
   document.getElementById('tPhoto').value = '';
   updateTeamPhotoPreview('');
 }
 function saveTeam() {
   const id = document.getElementById('tId').value;
   const name = document.getElementById('tName').value.trim();
-  if (!name) { toast('Name is required.', 'error'); return; }
-  const obj = {
+  if (!name) { toast('Name required', 'error'); return; }
+  const obj = normalizeTeamMember({
     id, name,
     init: document.getElementById('tInit').value.trim().slice(0,2).toUpperCase() || name.slice(0,2).toUpperCase(),
     role: document.getElementById('tRole').value.trim() || 'Team',
@@ -1450,23 +1355,25 @@ function saveTeam() {
     c2: document.getElementById('tC2').value.trim() || '#f97316',
     c3: document.getElementById('tC3').value.trim() || '#c2410c',
     links: document.getElementById('tLinks').value,
-  };
+  });
   const idx = state.team.findIndex(t => t.id === id);
   if (idx >= 0) state.team[idx] = obj; else state.team.push(obj);
-  save(); closeModal('teamModal'); renderTeam(); renderDashboard();
-  toast(idx >= 0 ? 'Team member updated' : 'Team member added');
+  saveState(); closeModal('teamModal'); renderTeam(); renderDashboard();
+  toast(idx >= 0 ? 'Updated' : 'Added');
 }
 function deleteTeam(id) {
   const t = state.team.find(x => x.id === id);
   confirmAction('Delete team member?', `"${t?.name||''}" will be removed.`, async () => {
-    if (t?.photoKey) { try { await idbDelete(t.photoKey); } catch {} }
+    if (t?.photoKey) { try { await dbDelete(IDB_MEDIA, t.photoKey); } catch {} }
     state.team = state.team.filter(x => x.id !== id);
-    save(); renderTeam(); renderDashboard();
-    toast('Team member deleted');
+    saveState(); renderTeam(); renderDashboard();
+    toast('Deleted');
   });
 }
 
-/* ───────── services ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   SERVICES
+   ═══════════════════════════════════════════════════════════════ */
 function renderServices() {
   const wrap = document.getElementById('serviceList');
   const empty = document.getElementById('serviceEmpty');
@@ -1475,10 +1382,7 @@ function renderServices() {
   wrap.innerHTML = state.services.map(s => `
     <div class="row-card flex items-start gap-3">
       <div class="thumb" style="background:#332720;color:#fdba74;font-size:.7rem;font-weight:800">${esc(s.icon||'')}</div>
-      <div class="min-w-0 flex-1">
-        <p class="text-sm font-bold">${esc(s.title||'')}</p>
-        <p class="text-[11px] text-slate-400 mt-1">${esc(s.desc||'')}</p>
-      </div>
+      <div class="min-w-0 flex-1"><p class="text-sm font-bold">${esc(s.title||'')}</p><p class="text-[11px] text-slate-400 mt-1">${esc(s.desc||'')}</p></div>
       <div class="flex items-center gap-1 flex-shrink-0">
         <button onclick="openServiceModal('${s.id}')" class="btn btn-g btn-sm">Edit</button>
         <button onclick="deleteService('${s.id}')" class="btn btn-danger btn-sm">Delete</button>
@@ -1498,112 +1402,284 @@ function openServiceModal(id) {
 function saveService() {
   const id = document.getElementById('sId').value;
   const title = document.getElementById('sTitle').value.trim();
-  if (!title) { toast('Title is required.', 'error'); return; }
-  const obj = {
-    id, title,
-    icon: document.getElementById('sIcon').value,
-    desc: document.getElementById('sDesc').value.trim(),
-  };
+  if (!title) { toast('Title required', 'error'); return; }
+  const obj = normalizeService({ id, title, icon: document.getElementById('sIcon').value, desc: document.getElementById('sDesc').value.trim() });
   const idx = state.services.findIndex(s => s.id === id);
   if (idx >= 0) state.services[idx] = obj; else state.services.push(obj);
-  save(); closeModal('serviceModal'); renderServices(); renderDashboard();
-  toast(idx >= 0 ? 'Service updated' : 'Service added');
+  saveState(); closeModal('serviceModal'); renderServices(); renderDashboard();
+  toast(idx >= 0 ? 'Updated' : 'Added');
 }
 function deleteService(id) {
   confirmAction('Delete service?', 'This service will be removed.', () => {
     state.services = state.services.filter(x => x.id !== id);
-    save(); renderServices(); renderDashboard();
-    toast('Service deleted');
+    saveState(); renderServices(); renderDashboard();
+    toast('Deleted');
   });
 }
 
-/* ───────── marquee ───────── */
-function loadMarquee() {
-  document.getElementById('marqueeInput').value = state.marquee || '';
-  renderMarqueePreview();
-}
-function renderMarqueePreview() {
-  const items = (state.marquee || '').split(',').map(s => s.trim()).filter(Boolean);
-  document.getElementById('marqueePreview').innerHTML = items.length
-    ? items.map(t => `<span class="chip">${esc(t)}</span>`).join('')
-    : '<span class="text-xs text-slate-500">Empty</span>';
-}
-function saveMarquee() {
-  state.marquee = document.getElementById('marqueeInput').value;
-  save(); renderMarqueePreview(); toast('Marquee saved');
+/* ═══════════════════════════════════════════════════════════════
+   PAGE COPY TAB
+   ═══════════════════════════════════════════════════════════════ */
+const COPY_SECTIONS = [
+  { key:'meta', label:'Meta (title, description)', fields:[
+    { path:'meta.titleTemplate', label:'Title', type:'text' },
+    { path:'meta.metaDescription', label:'Meta description', type:'textarea' },
+    { path:'meta.ogType', label:'OG type', type:'text' },
+    { path:'meta.ogImage', label:'OG image URL', type:'text' },
+  ]},
+  { key:'nav', label:'Navbar', fields:[
+    { path:'nav.brandFirst', label:'Brand (first half)', type:'text' },
+    { path:'nav.brandSecond', label:'Brand (gradient half)', type:'text' },
+    { path:'nav.adminLinkLabel', label:'Admin link label', type:'text' },
+    { path:'nav.adminLinkHref', label:'Admin link href', type:'text' },
+    { path:'nav.callCtaLabel', label:'Call CTA (mobile)', type:'text' },
+    { path:'nav.hireCtaLabel', label:'Hire CTA', type:'text' },
+    { path:'nav.menuAriaLabel', label:'Menu aria-label', type:'text' },
+    { path:'nav.adminMobileLabel', label:'Mobile admin label', type:'text' },
+  ]},
+  { key:'hero', label:'Hero', fields:[
+    { path:'hero.badge', label:'Badge text', type:'text' },
+    { path:'hero.line1', label:'Headline line 1', type:'text' },
+    { path:'hero.rotWords', label:'Rotating words (comma separated)', type:'text' },
+    { path:'hero.line3', label:'Headline line 3', type:'text' },
+    { path:'hero.sub', label:'Subheadline', type:'textarea' },
+    { path:'hero.ctaPrimary', label:'Primary CTA', type:'text' },
+    { path:'hero.ctaSecondary', label:'Secondary CTA', type:'text' },
+    { path:'hero.ctaPhoneLabel', label:'Phone CTA (slide)', type:'text' },
+    { path:'hero.previewCaption', label:'Slider caption', type:'text' },
+    { path:'hero.prevAria', label:'Previous aria', type:'text' },
+    { path:'hero.nextAria', label:'Next aria', type:'text' },
+  ]},
+  { key:'stats', label:'Hero stats', type:'stats' },
+  { key:'marquee', label:'Marquee', type:'marquee' },
+  { key:'catalog', label:'Catalog section', fields:[
+    { path:'catalog.eyebrow', label:'Eyebrow', type:'text' },
+    { path:'catalog.h2Pre', label:'H2 before gradient', type:'text' },
+    { path:'catalog.h2Gradient', label:'H2 gradient part', type:'text' },
+    { path:'catalog.lead', label:'Lead', type:'textarea' },
+    { path:'catalog.filterAllLabel', label:'Filter "All" label', type:'text' },
+    { path:'catalog.previewBtn', label:'Preview button', type:'text' },
+    { path:'catalog.viewBtn', label:'View project button', type:'text' },
+    { path:'catalog.comingSoonBtn', label:'Coming soon label', type:'text' },
+    { path:'catalog.previewAriaPrefix', label:'Preview aria prefix', type:'text' },
+  ]},
+  { key:'demo', label:'Live demo section', fields:[
+    { path:'demo.eyebrow', label:'Eyebrow', type:'text' },
+    { path:'demo.h2Pre', label:'H2 before gradient', type:'text' },
+    { path:'demo.h2Gradient', label:'H2 gradient part', type:'text' },
+    { path:'demo.lead', label:'Lead', type:'textarea' },
+    { path:'demo.ctaPrimary', label:'Primary CTA', type:'text' },
+    { path:'demo.ctaCopy', label:'Copy CTA', type:'text' },
+    { path:'demo.copiedToast', label:'Copied toast', type:'text' },
+    { path:'demo.copyFailToast', label:'Copy fail toast', type:'text' },
+    { path:'demo.caption', label:'Caption', type:'text' },
+  ]},
+  { key:'demoMockup', label:'Live demo mockup', fields:[
+    { path:'demo.mockup.sidebarBrand', label:'Sidebar brand', type:'text' },
+    { path:'demo.mockup.sidebarActive', label:'Sidebar active item', type:'text' },
+    { path:'demo.mockup.pageTitle', label:'Page title', type:'text' },
+    { path:'demo.mockup.avatarText', label:'Avatar text', type:'text' },
+    { path:'demo.mockup.toastTop', label:'Top toast', type:'text' },
+    { path:'demo.mockup.toastBot', label:'Bottom toast', type:'text' },
+    { path:'demo.mockup.toastBotIcon', label:'Bottom toast icon', type:'text' },
+  ]},
+  { key:'servicesCopy', label:'Services section', fields:[
+    { path:'services.eyebrow', label:'Eyebrow', type:'text' },
+    { path:'services.h2Pre', label:'H2 before gradient', type:'text' },
+    { path:'services.h2Gradient', label:'H2 gradient part', type:'text' },
+    { path:'services.lead', label:'Lead', type:'textarea' },
+  ]},
+  { key:'about', label:'About section', fields:[
+    { path:'about.eyebrow', label:'Eyebrow', type:'text' },
+    { path:'about.h2Pre', label:'H2 before gradient', type:'text' },
+    { path:'about.h2Gradient', label:'H2 gradient part', type:'text' },
+    { path:'about.h2Post', label:'H2 after gradient', type:'text' },
+    { path:'about.lead', label:'Lead', type:'textarea' },
+    { path:'about.paragraphs', label:'Paragraphs (separate with ---)', type:'paragraphs' },
+    { path:'about.timelineEyebrow', label:'Timeline eyebrow', type:'text' },
+  ]},
+  { key:'aboutFounder', label:'About — founder card', fields:[
+    { path:'about.founder.name', label:'Name', type:'text' },
+    { path:'about.founder.location', label:'Location', type:'text' },
+    { path:'about.founder.quote', label:'Quote', type:'textarea' },
+    { path:'about.founder.initials', label:'Initials fallback', type:'text' },
+    { path:'about.founder.callCta', label:'Call CTA', type:'text' },
+    { path:'about.founder.waCta', label:'WhatsApp CTA', type:'text' },
+  ]},
+  { key:'teamCopy', label:'Team section', fields:[
+    { path:'team.eyebrow', label:'Eyebrow', type:'text' },
+    { path:'team.h2Pre', label:'H2 before gradient', type:'text' },
+    { path:'team.h2Gradient', label:'H2 gradient part', type:'text' },
+    { path:'team.h2Post', label:'H2 after gradient', type:'text' },
+    { path:'team.lead', label:'Lead', type:'textarea' },
+    { path:'team.emailPrompt', label:'Email prompt', type:'text' },
+  ]},
+  { key:'teamJoin', label:'Team — join card', fields:[
+    { path:'team.join.badge', label:'Badge', type:'text' },
+    { path:'team.join.h3Line1', label:'H3 line 1', type:'text' },
+    { path:'team.join.h3Line2', label:'H3 line 2', type:'text' },
+    { path:'team.join.body', label:'Body', type:'textarea' },
+    { path:'team.join.cta', label:'CTA', type:'text' },
+  ]},
+  { key:'processCopy', label:'Process section', fields:[
+    { path:'process.eyebrow', label:'Eyebrow', type:'text' },
+    { path:'process.h2Pre', label:'H2 before gradient', type:'text' },
+    { path:'process.h2Gradient', label:'H2 gradient part', type:'text' },
+    { path:'process.lead', label:'Lead', type:'textarea' },
+  ]},
+  { key:'contactCopy', label:'Contact section', fields:[
+    { path:'contact.eyebrow', label:'Eyebrow', type:'text' },
+    { path:'contact.h2Pre', label:'H2 before gradient', type:'text' },
+    { path:'contact.h2Gradient', label:'H2 gradient part', type:'text' },
+    { path:'contact.lead', label:'Lead', type:'textarea' },
+    { path:'contact.primaryTag', label:'Primary tag', type:'text' },
+    { path:'contact.secondaryTag', label:'Secondary tag', type:'text' },
+    { path:'contact.speakToLabel', label:'Speak-to label', type:'text' },
+    { path:'contact.speakToName1', label:'Speak-to name 1', type:'text' },
+    { path:'contact.speakToName2', label:'Speak-to name 2', type:'text' },
+    { path:'contact.callCta', label:'Call CTA', type:'text' },
+    { path:'contact.waCta', label:'WhatsApp CTA', type:'text' },
+    { path:'contact.trustBadges', label:'Trust badges (comma separated)', type:'list' },
+    { path:'contact.phone1', label:'Primary phone', type:'text' },
+    { path:'contact.phone2', label:'Secondary phone', type:'text' },
+    { path:'contact.wa1', label:'WhatsApp 1 (intl)', type:'text' },
+    { path:'contact.wa2', label:'WhatsApp 2 (intl)', type:'text' },
+    { path:'contact.email', label:'Email', type:'text' },
+    { path:'contact.hours', label:'Hours', type:'text' },
+  ]},
+  { key:'footerCopy', label:'Footer', fields:[
+    { path:'footer.brandFirst', label:'Brand (first half)', type:'text' },
+    { path:'footer.brandSecond', label:'Brand (gradient half)', type:'text' },
+    { path:'footer.tagline', label:'Tagline', type:'textarea' },
+    { path:'footer.colProjects', label:'Projects column header', type:'text' },
+    { path:'footer.colMore', label:'More column header', type:'text' },
+    { path:'footer.colContact', label:'Contact column header', type:'text' },
+    { path:'footer.copyright', label:'Copyright (use {year})', type:'text' },
+    { path:'footer.legal', label:'Legal line', type:'text' },
+  ]},
+  { key:'a11y', label:'Accessibility labels', fields:[
+    { path:'a11y.menuAriaLabel', label:'Menu aria', type:'text' },
+    { path:'a11y.slideshowAria', label:'Slideshow aria', type:'text' },
+    { path:'a11y.callAria', label:'Call aria', type:'text' },
+    { path:'a11y.whatsappAria', label:'WhatsApp aria', type:'text' },
+  ]},
+];
+
+function getByPath(obj, path) { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj); }
+function setByPath(obj, path, val) {
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+    cur = cur[parts[i]];
+  }
+  cur[parts[parts.length - 1]] = val;
 }
 
-/* ───────── stats ───────── */
-function loadStats() {
-  const wrap = document.getElementById('statsEditor');
-  wrap.innerHTML = state.stats.map((s, i) => `
-    <div class="row-card">
-      <div class="grid grid-cols-3 gap-2">
-        <div class="col-span-2"><label class="label">Label</label><input data-stat="label" data-i="${i}" class="input" value="${esc(s.label||'')}" /></div>
-        <div><label class="label">Count</label><input data-stat="count" data-i="${i}" class="input" value="${esc(s.count||'')}" /></div>
-      </div>
-      <div class="mt-2"><label class="label">Suffix</label><input data-stat="suffix" data-i="${i}" class="input" value="${esc(s.suffix||'')}" /></div>
-    </div>`).join('');
-  wrap.querySelectorAll('input[data-stat]').forEach(inp => {
+function renderCopyTab() {
+  const wrap = document.getElementById('copySections');
+  wrap.innerHTML = COPY_SECTIONS.map((sec, idx) => {
+    let bodyHTML = '';
+    if (sec.type === 'stats') {
+      bodyHTML = `<div class="space-y-2">${state.copy.stats.map((s, i) => `
+        <div class="row-card">
+          <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-2"><label class="label">Label</label><input data-stat-key="${i}" data-stat-field="label" class="input" value="${esc(s.label||'')}" /></div>
+            <div><label class="label">Count</label><input data-stat-key="${i}" data-stat-field="count" class="input" value="${esc(s.count||'')}" /></div>
+          </div>
+          <div class="mt-2"><label class="label">Suffix</label><input data-stat-key="${i}" data-stat-field="suffix" class="input" value="${esc(s.suffix||'')}" /></div>
+        </div>`).join('')}</div>`;
+    } else if (sec.type === 'marquee') {
+      bodyHTML = `<label class="label">Industries (comma separated)</label><textarea id="copyMarqueeInput" class="input" rows="4">${esc(state.copy.marquee || '')}</textarea>`;
+    } else {
+      bodyHTML = `<div class="space-y-3">${sec.fields.map(f => {
+        const val = getByPath(state.copy, f.path);
+        if (f.type === 'textarea') {
+          return `<div><label class="label">${esc(f.label)}</label><textarea data-copy-path="${esc(f.path)}" class="input" rows="3">${esc(val || '')}</textarea></div>`;
+        } else if (f.type === 'paragraphs') {
+          return `<div><label class="label">${esc(f.label)}</label><textarea data-copy-path="${esc(f.path)}" data-list-type="paragraphs" class="input" rows="8">${esc(asArray(val).join('\n---\n'))}</textarea></div>`;
+        } else if (f.type === 'list') {
+          return `<div><label class="label">${esc(f.label)}</label><input data-copy-path="${esc(f.path)}" data-list-type="comma" class="input" value="${esc(asArray(val).join(', '))}" /></div>`;
+        }
+        return `<div><label class="label">${esc(f.label)}</label><input data-copy-path="${esc(f.path)}" class="input" value="${esc(val || '')}" /></div>`;
+      }).join('')}</div>`;
+    }
+    return `<details class="copy-group"${idx === 0 ? ' open' : ''}><summary>${esc(sec.label)}</summary><div>${bodyHTML}</div></details>`;
+  }).join('');
+
+  wrap.querySelectorAll('[data-copy-path]').forEach(inp => {
     inp.addEventListener('input', () => {
-      const i = +inp.dataset.i;
-      if (!state.stats[i]) return;
-      state.stats[i][inp.dataset.stat] = inp.value;
+      const path = inp.dataset.copyPath;
+      let val = inp.value;
+      if (inp.dataset.listType === 'comma') val = val.split(',').map(s => s.trim()).filter(Boolean);
+      else if (inp.dataset.listType === 'paragraphs') val = val.split(/\n---\n/).map(s => s.trim()).filter(Boolean);
+      setByPath(state.copy, path, val);
+      saveState();
     });
   });
+  wrap.querySelectorAll('[data-stat-key]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = +inp.dataset.statKey;
+      const f = inp.dataset.statField;
+      if (!state.copy.stats[i]) state.copy.stats[i] = {};
+      state.copy.stats[i][f] = inp.value;
+      saveState();
+    });
+  });
+  const marqueeInput = document.getElementById('copyMarqueeInput');
+  if (marqueeInput) marqueeInput.addEventListener('input', () => { state.copy.marquee = marqueeInput.value; saveState(); });
 }
-function saveStats() { save(); toast('Stats saved'); }
 
-/* ───────── site settings ───────── */
+function saveCopyNow() { saveStateNow().then(() => toast('Copy saved')); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SITE
+   ═══════════════════════════════════════════════════════════════ */
 function loadSiteSettings() {
-  document.getElementById('siteTitle').value = state.site.title || '';
-  document.getElementById('siteDesc').value = state.site.desc || '';
   document.getElementById('siteTheme').value = state.site.theme || '';
   document.getElementById('siteDemoUrl').value = state.site.demoUrl || '';
   updateLogoPreview(state.site.logoKey);
   updateFaviconPreview(state.site.faviconKey);
 }
 function saveSiteSettings() {
-  state.site.title = document.getElementById('siteTitle').value.trim();
-  state.site.desc = document.getElementById('siteDesc').value.trim();
-  state.site.theme = document.getElementById('siteTheme').value.trim();
-  state.site.demoUrl = document.getElementById('siteDemoUrl').value.trim();
-  save(); renderDashboard();
-  toast('Site settings saved');
+  const theme = document.getElementById('siteTheme').value.trim();
+  const url = document.getElementById('siteDemoUrl').value.trim();
+  if (theme) state.site.theme = theme;
+  if (url) state.site.demoUrl = url;
+  saveStateNow().then(() => { renderDashboard(); toast('Settings saved'); });
 }
+document.getElementById('siteTheme').addEventListener('input', e => { state.site.theme = e.target.value; saveState(); });
+document.getElementById('siteDemoUrl').addEventListener('input', e => { state.site.demoUrl = e.target.value; saveState(); });
+
 async function updateLogoPreview(key) {
   const img = document.getElementById('logoPreview');
-  const ph = document.getElementById('logoPlaceholder');
   const sb = document.getElementById('sidebarLogo');
-  if (key) {
-    const url = await idbGet(key);
-    if (url) {
-      img.src = url; img.classList.remove('hidden'); ph.classList.add('hidden');
-      if (sb) { sb.src = url; sb.style.display = 'block'; }
-      return;
-    }
+  const sbf = document.getElementById('sidebarLogoFallback');
+  const url = await idbGetMedia(key);
+  if (url) {
+    if (img) { img.src = url; img.classList.remove('hidden'); }
+    if (sb) { sb.src = url; sb.style.display = 'block'; }
+    if (sbf) sbf.style.display = 'none';
+  } else {
+    if (img) { img.removeAttribute('src'); img.classList.add('hidden'); }
+    if (sb) { sb.removeAttribute('src'); sb.style.display = 'none'; }
+    if (sbf) sbf.style.display = 'block';
   }
-  img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden');
-  if (sb) { sb.src = ''; sb.style.display = 'none'; }
 }
 async function updateFaviconPreview(key) {
   const img = document.getElementById('faviconPreview');
-  const ph = document.getElementById('faviconPlaceholder');
-  if (key) {
-    const url = await idbGet(key);
-    if (url) { img.src = url; img.classList.remove('hidden'); ph.classList.add('hidden'); return; }
-  }
-  img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden');
+  const url = await idbGetMedia(key);
+  if (!img) return;
+  if (url) { img.src = url; img.classList.remove('hidden'); }
+  else { img.removeAttribute('src'); img.classList.add('hidden'); }
 }
 async function handleLogoUpload(e) {
   const file = e.target.files[0]; if (!file) return;
   fileToDataURL(file, 5 * 1024 * 1024).then(async url => {
-    // Delete old
-    if (state.site.logoKey) { try { await idbDelete(state.site.logoKey); } catch {} }
+    if (state.site.logoKey) { try { await dbDelete(IDB_MEDIA, state.site.logoKey); } catch {} }
     const key = 'logo_' + uid('k');
-    await idbPut(key, url);
-    state.site.logoKey = key; save();
-    updateLogoPreview(key); renderDashboard();
+    await idbPutMedia(key, url);
+    state.site.logoKey = key; saveState(); updateLogoPreview(key); renderDashboard();
     toast('Logo uploaded');
   }).catch(err => toast(err, 'error'));
   e.target.value = '';
@@ -1611,97 +1687,41 @@ async function handleLogoUpload(e) {
 async function handleFaviconUpload(e) {
   const file = e.target.files[0]; if (!file) return;
   fileToDataURL(file, 512 * 1024).then(async url => {
-    if (state.site.faviconKey) { try { await idbDelete(state.site.faviconKey); } catch {} }
+    if (state.site.faviconKey) { try { await dbDelete(IDB_MEDIA, state.site.faviconKey); } catch {} }
     const key = 'favicon_' + uid('k');
-    await idbPut(key, url);
-    state.site.faviconKey = key; save();
-    updateFaviconPreview(key);
+    await idbPutMedia(key, url);
+    state.site.faviconKey = key; saveState(); updateFaviconPreview(key);
     toast('Favicon uploaded');
   }).catch(err => toast(err, 'error'));
   e.target.value = '';
 }
-async function removeLogo() {
-  if (state.site.logoKey) { try { await idbDelete(state.site.logoKey); } catch {} }
-  state.site.logoKey = ''; save(); updateLogoPreview(''); renderDashboard();
-  toast('Logo removed', 'info');
-}
-async function removeFavicon() {
-  if (state.site.faviconKey) { try { await idbDelete(state.site.faviconKey); } catch {} }
-  state.site.faviconKey = ''; save(); updateFaviconPreview('');
-  toast('Favicon removed', 'info');
-}
+async function removeLogo() { if (state.site.logoKey) { try { await dbDelete(IDB_MEDIA, state.site.logoKey); } catch {} } state.site.logoKey = ''; saveState(); updateLogoPreview(''); renderDashboard(); toast('Logo removed', 'info'); }
+async function removeFavicon() { if (state.site.faviconKey) { try { await dbDelete(IDB_MEDIA, state.site.faviconKey); } catch {} } state.site.faviconKey = ''; saveState(); updateFaviconPreview(''); toast('Favicon removed', 'info'); }
 
-/* ───────── contact ───────── */
-function loadContact() {
-  const c = state.contact;
-  document.getElementById('cPhone1').value = c.phone1 || '';
-  document.getElementById('cPhone2').value = c.phone2 || '';
-  document.getElementById('cWhatsApp1').value = c.wa1 || '';
-  document.getElementById('cWhatsApp2').value = c.wa2 || '';
-  document.getElementById('cEmail').value = c.email || '';
-  document.getElementById('cHours').value = c.hours || '';
-}
-function saveContact() {
-  state.contact = {
-    phone1: document.getElementById('cPhone1').value.trim(),
-    phone2: document.getElementById('cPhone2').value.trim(),
-    wa1: document.getElementById('cWhatsApp1').value.trim(),
-    wa2: document.getElementById('cWhatsApp2').value.trim(),
-    email: document.getElementById('cEmail').value.trim(),
-    hours: document.getElementById('cHours').value.trim(),
-  };
-  save(); renderDashboard();
-  toast('Contact info saved');
-}
-
-/* ───────── hero ───────── */
-function loadHero() {
-  document.getElementById('heroLine1').value = state.hero.line1 || '';
-  document.getElementById('heroLine3').value = state.hero.line3 || '';
-  document.getElementById('heroRotWords').value = state.hero.rotWords || '';
-  document.getElementById('heroSub').value = state.hero.sub || '';
-  document.getElementById('heroBadge').value = state.hero.badge || '';
-}
-function saveHero() {
-  state.hero = {
-    line1: document.getElementById('heroLine1').value.trim(),
-    line3: document.getElementById('heroLine3').value.trim(),
-    rotWords: document.getElementById('heroRotWords').value.trim(),
-    sub: document.getElementById('heroSub').value.trim(),
-    badge: document.getElementById('heroBadge').value.trim(),
-  };
-  save(); toast('Hero saved');
-}
-
-/* ───────── media library ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   MEDIA
+   ═══════════════════════════════════════════════════════════════ */
 async function renderMedia() {
   const grid = document.getElementById('mediaGrid');
   const empty = document.getElementById('mediaEmpty');
   if (!state.media.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
   empty.classList.add('hidden');
-  // Render cards with placeholder thumbnails, then hydrate
   grid.innerHTML = state.media.map(m => `
     <div class="row-card p-2">
-      <div class="aspect-square rounded-lg overflow-hidden bg-black/30 mb-2">
-        <img src="" data-media-img="${m.key}" alt="" class="h-full w-full object-cover" />
-      </div>
-      <p class="text-[10px] text-slate-400 truncate" title="${esc(m.name||'')}">${esc(m.name||'image')}</p>
+      <div class="aspect-square rounded-lg overflow-hidden bg-black/30 mb-2"><img src="" data-media-img="${esc(m.key)}" alt="" class="h-full w-full object-cover" /></div>
+      <p class="text-[10px] text-slate-400 truncate">${esc(m.name||'image')}</p>
       <p class="text-[9px] text-slate-600 mt-0.5">${m.size ? (m.size < 1048576 ? (m.size/1024).toFixed(0)+' KB' : (m.size/1048576).toFixed(2)+' MB') : ''}</p>
       <div class="flex gap-1 mt-1.5">
         <button onclick="copyMediaUrl('${m.id}')" class="btn btn-g btn-sm flex-1 text-[10px]">Copy</button>
         <button onclick="deleteMedia('${m.id}')" class="btn btn-danger btn-sm text-[10px]">Del</button>
       </div>
     </div>`).join('');
-  // Hydrate thumbnails from IndexedDB
-  const imgs = grid.querySelectorAll('[data-media-img]');
-  for (const img of imgs) {
-    const key = img.dataset.mediaImg;
-    try {
-      const url = await idbGet(key);
-      if (url) img.src = url;
-    } catch {}
+  for (const m of state.media) {
+    const img = grid.querySelector(`[data-media-img="${CSS.escape(m.key)}"]`);
+    if (!img) continue;
+    const url = await idbGetMedia(m.key);
+    if (url) img.src = url;
   }
-  updateStorageMeter();
 }
 async function handleMediaUpload(e) {
   const files = Array.from(e.target.files || []);
@@ -1711,66 +1731,47 @@ async function handleMediaUpload(e) {
     try {
       const url = await fileToDataURL(file, 5 * 1024 * 1024);
       const key = 'media_' + uid('k');
-      await idbPut(key, url);
+      await idbPutMedia(key, url);
       state.media.unshift({ id: uid('m'), name: file.name, key, size: file.size, type: file.type });
       done++;
-    } catch (err) {
-      failed++;
-      toast(err, 'error');
-    }
+    } catch (err) { failed++; toast(err, 'error'); }
   }
-  if (done) {
-    save(); renderMedia();
-    toast(`Uploaded ${done} file${done>1?'s':''}${failed?` (${failed} failed)`:''}`);
-  }
+  if (done) { saveState(); renderMedia(); toast(`Uploaded ${done}${failed?` (${failed} failed)`:''}`); }
   e.target.value = '';
 }
 async function copyMediaUrl(id) {
   const m = state.media.find(x => x.id === id); if (!m) return;
-  try {
-    const url = await idbGet(m.key);
-    if (url) {
-      await navigator.clipboard.writeText(url);
-      toast('Data URL copied — paste it anywhere');
-    } else {
-      toast('Image not found in storage', 'error');
-    }
-  } catch { toast('Could not copy', 'error'); }
+  const url = await idbGetMedia(m.key);
+  if (!url) { toast('Not found', 'error'); return; }
+  try { await navigator.clipboard.writeText(url); toast('Data URL copied'); } catch { toast('Could not copy', 'error'); }
 }
 function deleteMedia(id) {
   const m = state.media.find(x => x.id === id);
-  confirmAction('Delete image?', 'This image will be removed from the library.', async () => {
-    if (m?.key) { try { await idbDelete(m.key); } catch {} }
+  confirmAction('Delete image?', 'Removed from library.', async () => {
+    if (m?.key) { try { await dbDelete(IDB_MEDIA, m.key); } catch {} }
     state.media = state.media.filter(x => x.id !== id);
-    save(); renderMedia();
-    toast('Image deleted');
+    saveState(); renderMedia();
+    toast('Deleted');
   });
 }
 
-/* ───────── change password ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   PASSWORD / EXPORT / IMPORT / RESET
+   ═══════════════════════════════════════════════════════════════ */
 async function changePassword() {
-  const pw1 = document.getElementById('newPw').value;
-  const pw2 = document.getElementById('newPw2').value;
-  if (!pw1 || !pw2) { toast('Fill in both fields.', 'error'); return; }
-  if (pw1 !== pw2) { toast('Passwords do not match.', 'error'); return; }
-  if (pw1.length < 8) { toast('Password must be at least 8 characters.', 'error'); return; }
-  const newHash = await sha256(_CRED.u + ':' + pw1);
-  localStorage.setItem('arcdigital_admin_pw_hash', newHash);
-  document.getElementById('newPw').value = '';
-  document.getElementById('newPw2').value = '';
-  toast('Password updated. Use it next time you sign in.');
+  const pw1 = document.getElementById('newPw').value, pw2 = document.getElementById('newPw2').value;
+  if (!pw1 || !pw2) return toast('Fill in both', 'error');
+  if (pw1 !== pw2) return toast('Do not match', 'error');
+  if (pw1.length < 8) return toast('Min 8 characters', 'error');
+  localStorage.setItem(PW_HASH_KEY, await sha256(_CRED.u + ':' + pw1));
+  document.getElementById('newPw').value = ''; document.getElementById('newPw2').value = '';
+  toast('Password updated');
 }
 
-/* ───────── import / export / reset ───────── */
 async function exportData() {
-  // Gather media from IndexedDB too
   const mediaData = {};
-  for (const m of state.media) {
-    try {
-      const url = await idbGet(m.key);
-      if (url) mediaData[m.key] = url;
-    } catch {}
-  }
+  const all = await dbGetAll(IDB_MEDIA).catch(() => []);
+  for (const rec of all) if (rec && rec.key) mediaData[rec.key] = rec.dataUrl;
   const exportObj = { ...state, _media: mediaData };
   const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -1778,7 +1779,7 @@ async function exportData() {
   a.download = `arcdigital-backup-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('Data exported (with media)');
+  toast('Exported');
 }
 function importData(e) {
   const file = e.target.files[0]; if (!file) return;
@@ -1788,98 +1789,92 @@ function importData(e) {
       const parsed = JSON.parse(reader.result);
       const mediaData = parsed._media || {};
       delete parsed._media;
-      state = { ...structuredClone(DEFAULTS), ...parsed,
-        site:    { ...DEFAULTS.site,    ...(parsed.site||{}) },
-        hero:    { ...DEFAULTS.hero,    ...(parsed.hero||{}) },
-        contact: { ...DEFAULTS.contact, ...(parsed.contact||{}) },
-        stats:   Array.isArray(parsed.stats)   ? parsed.stats   : structuredClone(DEFAULTS.stats),
-        projects:Array.isArray(parsed.projects)? parsed.projects: structuredClone(DEFAULTS.projects),
-        team:    Array.isArray(parsed.team)    ? parsed.team    : structuredClone(DEFAULTS.team),
-        services:Array.isArray(parsed.services)? parsed.services: structuredClone(DEFAULTS.services),
-        media:   Array.isArray(parsed.media)   ? parsed.media   : [],
+      for (const [k, v] of Object.entries(mediaData)) { try { await idbPutMedia(k, v); } catch {} }
+      const base = structuredClone(DEFAULTS);
+      state = {
+        ...base, ...parsed,
+        copy: mergeCopy(parsed.copy),
+        projects: Array.isArray(parsed.projects) ? parsed.projects.map(normalizeProject) : base.projects.map(normalizeProject),
+        team: Array.isArray(parsed.team) ? parsed.team.map(normalizeTeamMember) : base.team.map(normalizeTeamMember),
+        services: Array.isArray(parsed.services) ? parsed.services.map(normalizeService) : base.services.map(normalizeService),
+        site: { ...base.site, ...(parsed.site || {}) },
+        media: Array.isArray(parsed.media) ? parsed.media : [],
       };
-      // Restore media blobs into IndexedDB
-      for (const [key, url] of Object.entries(mediaData)) {
-        try { await idbPut(key, url); } catch (err) { console.warn('Could not restore', key, err); }
-      }
-      save();
-      renderAll();
-      toast('Data imported' + (Object.keys(mediaData).length ? ' with media' : ''));
-    } catch (err) { toast('Invalid JSON file', 'error'); }
+      // Re-merge old shape into copy on import
+      if (parsed.hero) state.copy.hero = { ...state.copy.hero, ...parsed.hero };
+      if (parsed.contact) state.copy.contact = { ...state.copy.contact, ...parsed.contact };
+      if (Array.isArray(parsed.stats) && parsed.stats.length) state.copy.stats = parsed.stats;
+      if (parsed.marquee) state.copy.marquee = parsed.marquee;
+
+      await saveStateNow();
+      await renderAll();
+      toast('Imported' + (Object.keys(mediaData).length ? ' with media' : ''));
+    } catch (err) { console.error(err); toast('Invalid JSON', 'error'); }
   };
   reader.readAsText(file);
   e.target.value = '';
 }
 function resetAll() {
-  confirmAction('Reset all data?', 'All your custom changes (and uploaded media) will be lost and defaults restored.', async () => {
-    // Clear IndexedDB
-    try {
-      const keys = await idbListKeys();
-      for (const k of keys) await idbDelete(k);
-    } catch {}
+  confirmAction('Reset all data?', 'All custom changes (and media) will be wiped.', async () => {
+    try { await dbClear(IDB_MEDIA); } catch {}
     state = structuredClone(DEFAULTS);
-    save();
-    renderAll();
-    toast('Reset to defaults', 'info');
+    await saveStateNow();
+    await renderAll();
+    toast('Reset', 'info');
   });
 }
 
-/* ───────── helpers ───────── */
-function esc(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
+/* ═══════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════ */
 function fileToDataURL(file, maxBytes) {
   return new Promise((resolve, reject) => {
-    if (maxBytes && file.size > maxBytes) {
-      reject(`File too large (${(file.size/1024/1024).toFixed(1)}MB). Max ${(maxBytes/1024/1024).toFixed(2)}MB.`);
-      return;
-    }
-    if (!file.type.startsWith('image/') && !file.name.endsWith('.ico')) {
-      reject('Only image files are allowed.');
-      return;
-    }
+    if (maxBytes && file.size > maxBytes) { reject(`Too large. Max ${(maxBytes/1024/1024).toFixed(2)}MB.`); return; }
+    if (!file.type.startsWith('image/') && !file.name.endsWith('.ico')) { reject('Image files only.'); return; }
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject('Could not read file.');
+    reader.onerror = () => reject('Could not read.');
     reader.readAsDataURL(file);
   });
 }
 
-/* ───────── drop zones ───────── */
 function bindDropzone(zoneId, inputId, handler) {
   const zone = document.getElementById(zoneId);
-  if (!zone) return;
+  if (!zone || zone.dataset.bound) return;
+  zone.dataset.bound = '1';
   ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('dragover'); }));
   ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('dragover'); }));
   zone.addEventListener('drop', e => {
     const file = e.dataTransfer.files[0]; if (!file) return;
-    const fakeEvent = { target: { files: [file], value: '' } };
-    handler(fakeEvent);
+    handler({ target: { files: [file], value: '' } });
   });
 }
 
-/* ───────── initial render ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════ */
 async function renderAll() {
-  updateLogoPreview(state.site.logoKey);
-  updateFaviconPreview(state.site.faviconKey);
-  renderDashboard();
+  await updateLogoPreview(state.site.logoKey);
+  await updateFaviconPreview(state.site.faviconKey);
+  await renderDashboard();
   renderProjects();
   renderTeam();
   renderServices();
-  renderMedia();
-  loadMarquee();
-  loadStats();
+  renderCopyTab();
   loadSiteSettings();
-  loadContact();
-  loadHero();
+  renderMedia();
   renderSecurity();
 }
 
-/* Called once after login succeeds */
-function initAdmin() {
-  renderAll();
+async function initAdmin() {
+  if (__adminInitialized) {
+    await loadState();
+    await renderAll();
+    return;
+  }
+  __adminInitialized = true;
+  await loadState();
+  await renderAll();
   bindDropzone('logoDropzone', 'logoInput', handleLogoUpload);
   bindDropzone('faviconDropzone', 'faviconInput', handleFaviconUpload);
   bindDropzone('teamPhotoDrop', 'tPhotoInput', handleTeamPhoto);
@@ -1887,14 +1882,14 @@ function initAdmin() {
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      const active = document.querySelector('.tab.active')?.id?.replace('tab-','');
-      if (active === 'marquee') saveMarquee();
-      else if (active === 'stats') saveStats();
-      else if (active === 'site') saveSiteSettings();
-      else if (active === 'contact') saveContact();
-      else if (active === 'hero') saveHero();
-      else save();
+      flushCurrentTab();
+      saveStateNow().then(() => toast('Saved'));
     }
+  });
+  window.addEventListener('beforeunload', () => {
+    flushCurrentTab();
+    // Best-effort synchronous save — saveStateNow is async but the debounce is cleared so it flushes
+    clearTimeout(__saveDebounce);
   });
 }
 </script>
