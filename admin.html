@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArcDigital — Admin Dashboard</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#1a1410" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c',700:'#c2410c',800:'#9a3412',900:'#7c2d12' },
+            ink: { 900:'#1a1410', 800:'#241c16', 700:'#332720', 600:'#4a3a30' },
+          },
+          fontFamily: {
+            sans: ['Inter','ui-sans-serif','system-ui','sans-serif'],
+            mono: ['JetBrains Mono','ui-monospace','monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --c1:#fdba74; --c2:#f97316; --c3:#c2410c; --r:249,115,22; }
+    body { background:#1a1410; }
+    ::-webkit-scrollbar { width:10px; height:10px; }
+    ::-webkit-scrollbar-track { background:#241c16; }
+    ::-webkit-scrollbar-thumb { background:#4a3a30; border-radius:5px; }
+    ::-webkit-scrollbar-thumb:hover { background:#6b5444; }
+    .text-gradient { background:linear-gradient(110deg,#fdba74,#f97316,#fbbf24); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .glass { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); }
+    .panel { background:rgba(36,28,22,.85); border:1px solid rgba(255,255,255,.08); }
+    .input { width:100%; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.12); border-radius:.75rem; padding:.65rem .9rem; color:#f1f5f9; font-size:.875rem; transition:border-color .2s, box-shadow .2s; }
+    .input:focus { outline:none; border-color:#f97316; box-shadow:0 0 0 3px rgba(249,115,22,.15); }
+    .input::placeholder { color:#6b7280; }
+    .label { display:block; font-size:.75rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#9ca3af; margin-bottom:.4rem; }
+    textarea.input { resize:vertical; min-height:80px; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border-radius:.75rem; padding:.65rem 1.1rem; font-weight:600; font-size:.85rem; transition:.2s; -webkit-tap-highlight-color:transparent; }
+    .btn:active { transform:scale(.97); }
+    .btn-p { background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,0)),#c2410c; color:#fff; box-shadow:0 8px 24px -10px rgba(249,115,22,.8); }
+    .btn-p:hover { filter:brightness(1.12); }
+    .btn-g { background:rgba(255,255,255,.06); color:#e2e8f0; border:1px solid rgba(255,255,255,.12); }
+    .btn-g:hover { background:rgba(255,255,255,.12); }
+    .btn-danger { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
+    .btn-danger:hover { background:rgba(239,68,68,.25); }
+    .btn-sm { padding:.45rem .8rem; font-size:.78rem; border-radius:.6rem; }
+    .nav-item { display:flex; align-items:center; gap:.75rem; padding:.7rem .9rem; border-radius:.75rem; color:#cbd5e1; font-size:.875rem; font-weight:500; transition:.2s; cursor:pointer; border:none; background:none; width:100%; text-align:left; }
+    .nav-item:hover { background:rgba(255,255,255,.06); color:#fff; }
+    .nav-item.active { background:linear-gradient(90deg,rgba(249,115,22,.2),rgba(249,115,22,.05)); color:#fdba74; box-shadow:inset 3px 0 0 #f97316; }
+    .nav-item svg { width:1.15rem; height:1.15rem; flex-shrink:0; }
+    .tab { display:none; }
+    .tab.active { display:block; animation:fadeIn .35s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    @keyframes toastIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:none} }
+    .spinner { animation:spin 1s linear infinite; }
+    .toast { animation:toastIn .3s ease; }
+    .badge { display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .55rem; border-radius:.4rem; font-size:.7rem; font-weight:700; }
+    .badge-on { background:rgba(16,185,129,.15); color:#6ee7b7; border:1px solid rgba(16,185,129,.3); }
+    .badge-off { background:rgba(107,114,128,.15); color:#9ca3af; border:1px solid rgba(107,114,128,.3); }
+    .thumb { width:3.5rem; height:3.5rem; border-radius:.6rem; object-fit:cover; background:#332720; flex-shrink:0; display:grid; place-items:center; color:#6b7280; font-weight:800; font-size:1rem; overflow:hidden; }
+    .row-card { background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.07); border-radius:.9rem; padding:.9rem; transition:.2s; }
+    .row-card:hover { border-color:rgba(249,115,22,.3); }
+    .drag-handle { cursor:grab; color:#6b7280; transition:color .2s; }
+    .drag-handle:hover { color:#f97316; }
+    .drag-handle:active { cursor:grabbing; }
+    .dropzone { border:2px dashed rgba(255,255,255,.15); border-radius:.9rem; padding:1.5rem; text-align:center; transition:.2s; cursor:pointer; }
+    .dropzone:hover, .dropzone.dragover { border-color:#f97316; background:rgba(249,115,22,.06); }
+    .modal-bg { position:fixed; inset:0; z-index:80; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:1rem; }
+    .modal-bg.open { display:flex; animation:fadeIn .2s ease; }
+    .modal { background:#241c16; border:1px solid rgba(255,255,255,.1); border-radius:1.25rem; width:100%; max-width:600px; max-height:90vh; overflow-y:auto; }
+    .switch { position:relative; display:inline-block; width:2.75rem; height:1.5rem; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider-sw { position:absolute; cursor:pointer; inset:0; background:#4a3a30; border-radius:999px; transition:.3s; }
+    .slider-sw:before { content:""; position:absolute; height:1.1rem; width:1.1rem; left:.2rem; bottom:.2rem; background:#fff; border-radius:50%; transition:.3s; }
+    .switch input:checked + .slider-sw { background:#f97316; }
+    .switch input:checked + .slider-sw:before { transform:translateX(1.25rem); }
+    .sidebar { transition:transform .3s ease; }
+    @media (max-width:1023px) {
+      .sidebar { position:fixed; z-index:70; inset:0 auto 0 0; transform:translateX(-100%); width:16rem; }
+      .sidebar.open { transform:translateX(0); }
+      .sidebar-overlay { position:fixed; inset:0; z-index:65; background:rgba(0,0,0,.6); display:none; }
+      .sidebar-overlay.show { display:block; }
+    }
+  </style>
+</head>
+
+<body class="bg-ink-900 text-slate-100 font-sans antialiased min-h-screen">
+
+  <!-- Toast container -->
+  <div id="toastWrap" class="fixed top-4 right-4 z-[90] flex flex-col gap-2 items-end" aria-live="polite"></div>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sidebarOverlay" class="sidebar-overlay lg:hidden" onclick="toggleSidebar(false)"></div>
+
+  <!-- ══════════════ SIDEBAR ══════════════ -->
+  <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 z-70 w-64 bg-ink-800/95 backdrop-blur border-r border-white/8 flex flex-col">
+    <div class="flex items-center justify-between px-4 h-16 border-b border-white/8 flex-shrink-0">
+      <a href="#" class="flex items-center gap-2.5">
+        <span class="relative grid place-items-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/30 overflow-hidden">
+          <img id="sidebarLogo" src="" alt="Logo" class="h-full w-full object-contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+          <svg class="h-5 w-5 text-white absolute" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg>
+        </span>
+        <span class="text-base font-extrabold tracking-tight">Arc<span class="text-gradient">Admin</span></span>
+      </a>
+      <button class="lg:hidden text-slate-400 hover:text-white p-1" onclick="toggleSidebar(false)" aria-label="Close menu">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+      <p class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Overview</p>
+      <button class="nav-item active" data-tab="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </button>
+
+      <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Content</p>
+      <button class="nav-item" data-tab="projects">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>
+        Projects
+        <span id="projCount" class="ml-auto text-[10px] bg-brand-600 text-white rounded-full px-2 py-0.5">0</span>
+      </button>
+      <button class="nav-item" data-tab="team">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Team
+        <span id="teamCount" class="ml-auto text-[10px] bg-brand-600 text-white rounded-full px-2 py-0.5">0</span>
+      </button>
+      <button class="nav-item" data-tab="services">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7l9 5 9-5-9-5Z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/></svg>
+        Services
+      </button>
+      <button class="nav-item" data-tab="marquee">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Marquee
+      </button>
+      <button class="nav-item" data-tab="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/></svg>
+        Stats
+      </button>
+
+      <p class="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Settings</p>
+      <button class="nav-item" data-tab="site">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+        Site settings
+      </button>
+      <button class="nav-item" data-tab="contact">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Contact info
+      </button>
+      <button class="nav-item" data-tab="hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        Hero section
+      </button>
+      <button class="nav-item" data-tab="media">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        Media library
+      </button>
+    </nav>
+
+    <div class="p-3 border-t border-white/8 flex-shrink-0 space-y-2">
+      <button onclick="exportData()" class="btn btn-g w-full text-xs">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export data
+      </button>
+      <label class="btn btn-g w-full text-xs cursor-pointer">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Import data
+        <input type="file" accept=".json" class="hidden" onchange="importData(event)" />
+      </label>
+      <a href="index.html" target="_blank" class="btn btn-p w-full text-xs">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+        View site
+      </a>
+    </div>
+  </aside>
+
+  <!-- ══════════════ MAIN ══════════════ -->
+  <div class="lg:pl-64">
+    <!-- Topbar -->
+    <header class="sticky top-0 z-40 h-16 flex items-center justify-between gap-3 px-4 sm:px-6 bg-ink-900/90 backdrop-blur border-b border-white/8">
+      <div class="flex items-center gap-3">
+        <button class="lg:hidden text-slate-300 hover:text-white p-2 -ml-2" onclick="toggleSidebar(true)" aria-label="Open menu">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div>
+          <h1 id="pageTitle" class="text-base sm:text-lg font-bold">Dashboard</h1>
+          <p id="pageSub" class="text-[11px] text-slate-500 hidden sm:block">Overview of your portfolio</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="saveStatus" class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 opacity-0 transition-opacity">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+          Saved
+        </span>
+        <button onclick="resetAll()" class="btn btn-g btn-sm" title="Reset all data to defaults">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span class="hidden sm:inline">Reset</span>
+        </button>
+        <div class="h-8 w-px bg-white/10"></div>
+        <div class="flex items-center gap-2">
+          <div class="text-right hidden sm:block">
+            <p class="text-xs font-bold leading-tight">Admin</p>
+            <p class="text-[10px] text-slate-500 leading-tight">ArcDigital</p>
+          </div>
+          <span class="grid place-items-center h-8 w-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">AD</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="p-4 sm:p-6 max-w-7xl mx-auto">
+
+      <!-- ══════════════ DASHBOARD ══════════════ -->
+      <section id="tab-dashboard" class="tab active">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div class="panel rounded-2xl p-4"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Projects</p><p id="dashProjects" class="mt-2 text-3xl font-extrabold text-gradient">0</p><p class="text-[10px] text-slate-500 mt-1">Portfolio items</p></div>
+          <div class="panel rounded-2xl p-4"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Team</p><p id="dashTeam" class="mt-2 text-3xl font-extrabold text-gradient">0</p><p class="text-[10px] text-slate-500 mt-1">Members listed</p></div>
+          <div class="panel rounded-2xl p-4"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Services</p><p id="dashServices" class="mt-2 text-3xl font-extrabold text-gradient">0</p><p class="text-[10px] text-slate-500 mt-1">Offered</p></div>
+          <div class="panel rounded-2xl p-4"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Linked</p><p id="dashLinked" class="mt-2 text-3xl font-extrabold text-gradient">0</p><p class="text-[10px] text-slate-500 mt-1">With live demo</p></div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-4 mt-4">
+          <div class="panel rounded-2xl p-4 lg:col-span-2">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-bold">Quick actions</h3>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-2">
+              <button onclick="switchTab('projects'); openProjectModal()" class="row-card text-left"><span class="text-brand-400 font-bold text-sm">+ Add project</span><p class="text-[11px] text-slate-500 mt-1">Create a new portfolio entry</p></button>
+              <button onclick="switchTab('team'); openTeamModal()" class="row-card text-left"><span class="text-brand-400 font-bold text-sm">+ Add team member</span><p class="text-[11px] text-slate-500 mt-1">Add someone to the team grid</p></button>
+              <button onclick="switchTab('site')" class="row-card text-left"><span class="text-brand-400 font-bold text-sm">Edit site settings</span><p class="text-[11px] text-slate-500 mt-1">Title, logo, favicon, SEO</p></button>
+              <button onclick="switchTab('media')" class="row-card text-left"><span class="text-brand-400 font-bold text-sm">Upload media</span><p class="text-[11px] text-slate-500 mt-1">Logos, photos, images</p></button>
+            </div>
+          </div>
+          <div class="panel rounded-2xl p-4">
+            <h3 class="text-sm font-bold mb-3">Site health</h3>
+            <ul class="space-y-2.5 text-xs">
+              <li class="flex items-center justify-between"><span class="text-slate-400">Live demo linked</span><span id="healthDemo" class="badge badge-off">Check</span></li>
+              <li class="flex items-center justify-between"><span class="text-slate-400">Logo uploaded</span><span id="healthLogo" class="badge badge-off">Check</span></li>
+              <li class="flex items-center justify-between"><span class="text-slate-400">Contact phone</span><span id="healthPhone" class="badge badge-off">Check</span></li>
+              <li class="flex items-center justify-between"><span class="text-slate-400">Team photos</span><span id="healthTeam" class="badge badge-off">Check</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="panel rounded-2xl p-4 mt-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold">Recent projects</h3>
+            <button onclick="switchTab('projects')" class="text-[11px] font-semibold text-brand-400 hover:text-brand-300">View all →</button>
+          </div>
+          <div id="dashRecent" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- ══════════════ PROJECTS ══════════════ -->
+      <section id="tab-projects" class="tab">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-lg font-bold">Projects</h2>
+            <p class="text-xs text-slate-500">Manage your portfolio entries. Only projects with a link show "View project".</p>
+          </div>
+          <button onclick="openProjectModal()" class="btn btn-p">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add project
+          </button>
+        </div>
+        <div id="projectList" class="space-y-2.5"></div>
+        <p id="projectEmpty" class="hidden text-center text-sm text-slate-500 py-10">No projects yet. Click "Add project" to create one.</p>
+      </section>
+
+      <!-- ══════════════ TEAM ══════════════ -->
+      <section id="tab-team" class="tab">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-lg font-bold">Team members</h2>
+            <p class="text-xs text-slate-500">These appear in the "Team" section on your site.</p>
+          </div>
+          <button onclick="openTeamModal()" class="btn btn-p">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add member
+          </button>
+        </div>
+        <div id="teamList" class="space-y-2.5"></div>
+        <p id="teamEmpty" class="hidden text-center text-sm text-slate-500 py-10">No team members yet.</p>
+      </section>
+
+      <!-- ══════════════ SERVICES ══════════════ -->
+      <section id="tab-services" class="tab">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-lg font-bold">Services</h2>
+            <p class="text-xs text-slate-500">What you build. Shown in the "What I build" section.</p>
+          </div>
+          <button onclick="openServiceModal()" class="btn btn-p">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add service
+          </button>
+        </div>
+        <div id="serviceList" class="space-y-2.5"></div>
+        <p id="serviceEmpty" class="hidden text-center text-sm text-slate-500 py-10">No services yet.</p>
+      </section>
+
+      <!-- ══════════════ MARQUEE ══════════════ -->
+      <section id="tab-marquee" class="tab">
+        <div class="panel rounded-2xl p-4 sm:p-5">
+          <h2 class="text-lg font-bold">Marquee industries</h2>
+          <p class="text-xs text-slate-500 mb-4">The scrolling list of industries under the hero. One per line.</p>
+          <label class="label" for="marqueeInput">Industries</label>
+          <textarea id="marqueeInput" class="input" rows="10" placeholder="Schools&#10;Clinics&#10;Restaurants..."></textarea>
+          <div class="flex justify-end gap-2 mt-4">
+            <button onclick="loadMarquee()" class="btn btn-g">Discard</button>
+            <button onclick="saveMarquee()" class="btn btn-p">Save marquee</button>
+          </div>
+          <div class="mt-4 pt-4 border-t border-white/8">
+            <p class="label">Preview</p>
+            <div class="flex flex-wrap gap-2" id="marqueePreview"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════ STATS ══════════════ -->
+      <section id="tab-stats" class="tab">
+        <div class="panel rounded-2xl p-4 sm:p-5">
+          <h2 class="text-lg font-bold">Hero stats</h2>
+          <p class="text-xs text-slate-500 mb-4">The four numbers shown under the hero slider.</p>
+          <div id="statsEditor" class="grid sm:grid-cols-2 gap-3"></div>
+          <div class="flex justify-end gap-2 mt-4">
+            <button onclick="loadStats()" class="btn btn-g">Discard</button>
+            <button onclick="saveStats()" class="btn btn-p">Save stats</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════ SITE SETTINGS ══════════════ -->
+      <section id="tab-site" class="tab">
+        <div class="grid lg:grid-cols-2 gap-4">
+          <div class="panel rounded-2xl p-4 sm:p-5 space-y-4">
+            <h2 class="text-lg font-bold">Site settings</h2>
+            <div><label class="label" for="siteTitle">Site title</label><input id="siteTitle" class="input" placeholder="ArcDigital — Custom Software, Built in Liberia" /></div>
+            <div><label class="label" for="siteDesc">Meta description</label><textarea id="siteDesc" class="input" rows="3" placeholder="Custom management systems for schools..."></textarea></div>
+            <div><label class="label" for="siteTheme">Theme color</label><input id="siteTheme" class="input" placeholder="#1a1410" /></div>
+            <div><label class="label" for="siteDemoUrl">Live demo URL (school project)</label><input id="siteDemoUrl" class="input" type="url" placeholder="https://archieswen01-art.github.io/ArcSchool/" /></div>
+            <div class="flex justify-end gap-2 pt-1">
+              <button onclick="loadSiteSettings()" class="btn btn-g">Discard</button>
+              <button onclick="saveSiteSettings()" class="btn btn-p">Save settings</button>
+            </div>
+          </div>
+
+          <div class="panel rounded-2xl p-4 sm:p-5 space-y-4">
+            <h2 class="text-lg font-bold">Logo &amp; favicon</h2>
+            <div>
+              <label class="label">Logo</label>
+              <div id="logoDropzone" class="dropzone" onclick="document.getElementById('logoInput').click()">
+                <img id="logoPreview" src="" alt="Logo preview" class="hidden mx-auto h-16 object-contain rounded-lg mb-2" />
+                <svg id="logoPlaceholder" class="mx-auto h-8 w-8 text-slate-500 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                <p class="text-xs text-slate-400">Click or drop an image here</p>
+                <p class="text-[10px] text-slate-600 mt-1">PNG, JPG, SVG · max 2MB</p>
+              </div>
+              <input id="logoInput" type="file" accept="image/*" class="hidden" onchange="handleLogoUpload(event)" />
+              <div class="flex justify-end mt-2"><button onclick="removeLogo()" class="btn btn-danger btn-sm">Remove logo</button></div>
+            </div>
+            <div>
+              <label class="label">Favicon</label>
+              <div id="faviconDropzone" class="dropzone" onclick="document.getElementById('faviconInput').click()">
+                <img id="faviconPreview" src="" alt="Favicon preview" class="hidden mx-auto h-10 w-10 object-contain rounded mb-2" />
+                <svg id="faviconPlaceholder" class="mx-auto h-8 w-8 text-slate-500 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.8 5.8 21 7 14 2 9.3 9 8.5 12 2"/></svg>
+                <p class="text-xs text-slate-400">Click or drop an ICO, PNG, or SVG</p>
+                <p class="text-[10px] text-slate-600 mt-1">Square recommended · max 512KB</p>
+              </div>
+              <input id="faviconInput" type="file" accept="image/*,.ico" class="hidden" onchange="handleFaviconUpload(event)" />
+              <div class="flex justify-end mt-2"><button onclick="removeFavicon()" class="btn btn-danger btn-sm">Remove favicon</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════ CONTACT ══════════════ -->
+      <section id="tab-contact" class="tab">
+        <div class="panel rounded-2xl p-4 sm:p-5">
+          <h2 class="text-lg font-bold mb-1">Contact information</h2>
+          <p class="text-xs text-slate-500 mb-4">Phone numbers, email, and hours shown on the site.</p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div><label class="label" for="cPhone1">Primary phone</label><input id="cPhone1" class="input" placeholder="0761 980 718" /></div>
+            <div><label class="label" for="cPhone2">Secondary phone</label><input id="cPhone2" class="input" placeholder="0888 133 667" /></div>
+            <div><label class="label" for="cWhatsApp1">WhatsApp 1 (intl format)</label><input id="cWhatsApp1" class="input" placeholder="231761980718" /></div>
+            <div><label class="label" for="cWhatsApp2">WhatsApp 2 (intl format)</label><input id="cWhatsApp2" class="input" placeholder="231888133667" /></div>
+            <div><label class="label" for="cEmail">Email</label><input id="cEmail" class="input" type="email" placeholder="hello@arcdigital.app" /></div>
+            <div><label class="label" for="cHours">Hours</label><input id="cHours" class="input" placeholder="Mon–Sat · 8:00 AM – 8:00 PM" /></div>
+          </div>
+          <div class="flex justify-end gap-2 mt-4">
+            <button onclick="loadContact()" class="btn btn-g">Discard</button>
+            <button onclick="saveContact()" class="btn btn-p">Save contact</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════ HERO ══════════════ -->
+      <section id="tab-hero" class="tab">
+        <div class="panel rounded-2xl p-4 sm:p-5 space-y-4">
+          <h2 class="text-lg font-bold">Hero section</h2>
+          <p class="text-xs text-slate-500 -mt-2">The first thing visitors see.</p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div><label class="label" for="heroLine1">Headline line 1</label><input id="heroLine1" class="input" placeholder="Custom software for" /></div>
+            <div><label class="label" for="heroLine3">Headline line 3</label><input id="heroLine3" class="input" placeholder="built right here in Liberia." /></div>
+          </div>
+          <div><label class="label" for="heroRotWords">Rotating words (comma separated)</label><input id="heroRotWords" class="input" placeholder="schools, clinics, shops, restaurants, churches, hotels, your business" /></div>
+          <div><label class="label" for="heroSub">Subheadline</label><textarea id="heroSub" class="input" rows="2" placeholder="Ready-to-adapt systems for schools, clinics..."></textarea></div>
+          <div><label class="label" for="heroBadge">Badge text</label><input id="heroBadge" class="input" placeholder="Available for new projects · Liberia" /></div>
+          <div class="flex justify-end gap-2 pt-1">
+            <button onclick="loadHero()" class="btn btn-g">Discard</button>
+            <button onclick="saveHero()" class="btn btn-p">Save hero</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════ MEDIA LIBRARY ══════════════ -->
+      <section id="tab-media" class="tab">
+        <div class="panel rounded-2xl p-4 sm:p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-lg font-bold">Media library</h2>
+              <p class="text-xs text-slate-500">All uploaded images are stored here (in your browser).</p>
+            </div>
+            <label class="btn btn-p cursor-pointer">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Upload image
+              <input type="file" accept="image/*" class="hidden" multiple onchange="handleMediaUpload(event)" />
+            </label>
+          </div>
+          <div id="mediaGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+          <p id="mediaEmpty" class="hidden text-center text-sm text-slate-500 py-10">No media uploaded yet.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ══════════════ PROJECT MODAL ══════════════ -->
+  <div id="projectModal" class="modal-bg" onclick="if(event.target===this)closeModal('projectModal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 sticky top-0 bg-[#241c16] z-10 rounded-t-3xl">
+        <h3 id="projectModalTitle" class="text-base font-bold">Add project</h3>
+        <button onclick="closeModal('projectModal')" class="text-slate-400 hover:text-white p-1"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="p-5 space-y-3">
+        <input type="hidden" id="pId" />
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label">Name prefix</label><input id="pName" class="input" placeholder="Arc" /></div>
+          <div><label class="label">Accent</label><input id="pAccent" class="input" placeholder="Digital" /></div>
+        </div>
+        <div><label class="label">Subtitle</label><input id="pSub" class="input" placeholder="School SMS" /></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label">Category</label><input id="pCat" class="input" placeholder="Education" /></div>
+          <div><label class="label">Tag</label><input id="pTag" class="input" placeholder="Flagship product" /></div>
+        </div>
+        <div><label class="label">Demo URL (leave blank = "Demo coming soon")</label><input id="pLink" class="input" type="url" placeholder="https://archieswen01-art.github.io/ArcSchool/" /></div>
+        <div><label class="label">Description</label><textarea id="pDesc" class="input" rows="3"></textarea></div>
+        <div><label class="label">Chips (comma separated)</label><input id="pChips" class="input" placeholder="32 modules, 4 roles, AI grading" /></div>
+        <div><label class="label">Accent colors (3 hex values)</label>
+          <div class="grid grid-cols-3 gap-2">
+            <input id="pC1" class="input" placeholder="#fdba74" />
+            <input id="pC2" class="input" placeholder="#f97316" />
+            <input id="pC3" class="input" placeholder="#c2410c" />
+          </div>
+        </div>
+        <div><label class="label">Icon key</label>
+          <select id="pIcon" class="input">
+            <option value="school">School (cap)</option>
+            <option value="hospital">Hospital (pulse)</option>
+            <option value="hr">HR (people)</option>
+            <option value="inventory">Inventory (box)</option>
+            <option value="restaurant">Restaurant (fork)</option>
+            <option value="church">Church</option>
+            <option value="property">Property (house)</option>
+            <option value="hotel">Hotel (bed)</option>
+            <option value="savings">Savings (coin)</option>
+            <option value="build">Build (blueprint)</option>
+            <option value="idea">Idea (spark)</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 px-5 py-4 border-t border-white/8 sticky bottom-0 bg-[#241c16]">
+        <button onclick="closeModal('projectModal')" class="btn btn-g">Cancel</button>
+        <button onclick="saveProject()" class="btn btn-p">Save project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ TEAM MODAL ══════════════ -->
+  <div id="teamModal" class="modal-bg" onclick="if(event.target===this)closeModal('teamModal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 sticky top-0 bg-[#241c16] z-10 rounded-t-3xl">
+        <h3 id="teamModalTitle" class="text-base font-bold">Add team member</h3>
+        <button onclick="closeModal('teamModal')" class="text-slate-400 hover:text-white p-1"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="p-5 space-y-3">
+        <input type="hidden" id="tId" />
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label">Name</label><input id="tName" class="input" placeholder="Jane Doe" /></div>
+          <div><label class="label">Initials</label><input id="tInit" class="input" placeholder="JD" maxlength="2" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label">Role</label><input id="tRole" class="input" placeholder="Design" /></div>
+          <div><label class="label">Title</label><input id="tTitle" class="input" placeholder="Lead Designer" /></div>
+        </div>
+        <div><label class="label">Bio</label><textarea id="tBio" class="input" rows="3"></textarea></div>
+        <div>
+          <label class="label">Photo</label>
+          <div id="teamPhotoDrop" class="dropzone" onclick="document.getElementById('tPhotoInput').click()">
+            <img id="tPhotoPreview" src="" alt="Photo preview" class="hidden mx-auto h-20 w-20 object-cover rounded-full mb-2" />
+            <svg id="tPhotoPlaceholder" class="mx-auto h-8 w-8 text-slate-500 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+            <p class="text-xs text-slate-400">Click or drop a photo</p>
+          </div>
+          <input id="tPhotoInput" type="file" accept="image/*" class="hidden" onchange="handleTeamPhoto(event)" />
+          <input id="tPhoto" type="hidden" />
+          <div class="flex justify-end mt-1"><button onclick="removeTeamPhoto()" class="btn btn-danger btn-sm">Remove photo</button></div>
+        </div>
+        <div><label class="label">Accent colors (3 hex values)</label>
+          <div class="grid grid-cols-3 gap-2">
+            <input id="tC1" class="input" placeholder="#fdba74" />
+            <input id="tC2" class="input" placeholder="#f97316" />
+            <input id="tC3" class="input" placeholder="#c2410c" />
+          </div>
+        </div>
+        <div><label class="label">Links (one per line: icon|href|label)</label>
+          <textarea id="tLinks" class="input" rows="4" placeholder="phone|tel:0761980718|Call&#10;wa|https://wa.me/231761980718|WhatsApp&#10;in|#|LinkedIn&#10;gh|#|GitHub"></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 px-5 py-4 border-t border-white/8 sticky bottom-0 bg-[#241c16]">
+        <button onclick="closeModal('teamModal')" class="btn btn-g">Cancel</button>
+        <button onclick="saveTeam()" class="btn btn-p">Save member</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SERVICE MODAL ══════════════ -->
+  <div id="serviceModal" class="modal-bg" onclick="if(event.target===this)closeModal('serviceModal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 sticky top-0 bg-[#241c16] z-10 rounded-t-3xl">
+        <h3 id="serviceModalTitle" class="text-base font-bold">Add service</h3>
+        <button onclick="closeModal('serviceModal')" class="text-slate-400 hover:text-white p-1"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="p-5 space-y-3">
+        <input type="hidden" id="sId" />
+        <div><label class="label">Icon key</label>
+          <select id="sIcon" class="input">
+            <option value="school">School</option>
+            <option value="hospital">Hospital</option>
+            <option value="hr">HR</option>
+            <option value="inventory">Inventory</option>
+            <option value="restaurant">Restaurant</option>
+            <option value="church">Church</option>
+            <option value="property">Property</option>
+            <option value="hotel">Hotel</option>
+            <option value="savings">Savings</option>
+            <option value="build">Build</option>
+            <option value="idea">Idea</option>
+          </select>
+        </div>
+        <div><label class="label">Title</label><input id="sTitle" class="input" placeholder="School management" /></div>
+        <div><label class="label">Description</label><textarea id="sDesc" class="input" rows="3"></textarea></div>
+      </div>
+      <div class="flex justify-end gap-2 px-5 py-4 border-t border-white/8 sticky bottom-0 bg-[#241c16]">
+        <button onclick="closeModal('serviceModal')" class="btn btn-g">Cancel</button>
+        <button onclick="saveService()" class="btn btn-p">Save service</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CONFIRM MODAL ══════════════ -->
+  <div id="confirmModal" class="modal-bg" onclick="if(event.target===this)closeModal('confirmModal')">
+    <div class="modal" style="max-width:380px" onclick="event.stopPropagation()">
+      <div class="p-5">
+        <div class="grid place-items-center h-12 w-12 rounded-full bg-red-500/15 text-red-400 mx-auto mb-3">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </div>
+        <h3 id="confirmTitle" class="text-center text-base font-bold">Are you sure?</h3>
+        <p id="confirmMsg" class="text-center text-xs text-slate-400 mt-1">This action cannot be undone.</p>
+      </div>
+      <div class="flex gap-2 px-5 pb-5">
+        <button onclick="closeModal('confirmModal')" class="btn btn-g flex-1">Cancel</button>
+        <button id="confirmYes" class="btn btn-danger flex-1">Delete</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ArcDigital Admin — data layer + UI
+   Everything persists to localStorage. "Export data" downloads a
+   JSON snapshot; "Import data" restores it. Uploads are stored as
+   base64 data URLs (so they survive across sessions).
+   ═══════════════════════════════════════════════════════════════ */
+
+const LS_KEY = 'arcdigital_admin_v1';
+
+/* ───────── default seed (mirrors the index.html) ───────── */
+const DEFAULTS = {
+  site: {
+    title: 'ArcDigital — Custom Software, Built in Liberia',
+    desc: "I'm a developer in Liberia. I build custom management systems — schools, hospitals, HR, inventory, restaurants, churches, hotels and more. ArcDigital is my flagship. Call 0761 980 718.",
+    theme: '#1a1410',
+    demoUrl: 'https://archieswen01-art.github.io/ArcSchool/',
+    logo: '',
+    favicon: '',
+  },
+  hero: {
+    line1: 'Custom software for',
+    rotWords: 'schools, clinics, shops, restaurants, churches, hotels, your business',
+    line3: 'built right here in Liberia.',
+    sub: 'Ready-to-adapt systems for schools, clinics, shops, restaurants, churches and more. Full source code handed over. One phone call to get started.',
+    badge: 'Available for new projects · Liberia',
+  },
+  contact: {
+    phone1: '0761 980 718',
+    phone2: '0888 133 667',
+    wa1: '231761980718',
+    wa2: '231888133667',
+    email: 'hello@arcdigital.app',
+    hours: 'Mon–Sat · 8:00 AM – 8:00 PM',
+  },
+  stats: [
+    { label: 'Product lines', count: '10', suffix: '+' },
+    { label: 'Modules shipped', count: '100', suffix: '+' },
+    { label: 'Source code yours', count: '100', suffix: '%' },
+    { label: 'Response time', count: '24', suffix: 'h' },
+  ],
+  marquee: 'Schools, Clinics, Pharmacies, Restaurants, Churches, Susu clubs, Hotels, Landlords, Contractors, Shops, NGOs, Offices, Community groups',
+  projects: [
+    { id:'school', icon:'school', name:'Arc', accent:'Digital', sub:'School SMS', tag:'Flagship product', cat:'Education', chips:['32 modules','4 roles','AI grading','18 themes'], c1:'#fdba74', c2:'#f97316', c3:'#c2410c', link:'https://archieswen01-art.github.io/ArcSchool/', desc:'The complete school management platform. Enrolment, fees, results, attendance, timetables, ID cards, transcripts, AI-graded quizzes — 32 modules, 4 roles, one system.' },
+    { id:'hospital', icon:'hospital', name:'Medi', accent:'Core', sub:'Hospital MS', tag:'Healthcare', cat:'Health', chips:['Patients','Appointments','Pharmacy','Billing'], c1:'#6ee7b7', c2:'#10b981', c3:'#047857', link:'', desc:'Patient records, appointments, prescriptions, lab results, billing and staff scheduling — everything a clinic or hospital needs to run calm, safe and paperless.' },
+    { id:'hr', icon:'hr', name:'People', accent:'Hub', sub:'HR System', tag:'Human resources', cat:'Business', chips:['Staff records','Payroll','Leave','Reviews'], c1:'#7dd3fc', c2:'#0ea5e9', c3:'#0369a1', link:'', desc:'Employee records, attendance, leave, payroll, performance reviews and recruitment. Built for growing companies that have outgrown spreadsheets.' },
+    { id:'inventory', icon:'inventory', name:'Stock', accent:'Flow', sub:'Inventory + POS', tag:'Retail & inventory', cat:'Business', chips:['Stock','POS','Receipts','Reports'], c1:'#c4b5fd', c2:'#8b5cf6', c3:'#6d28d9', link:'', desc:"Track stock across multiple locations, ring up sales at the counter, print receipts, and see what's selling — all from one dashboard." },
+    { id:'restaurant', icon:'restaurant', name:'Order', accent:'Up', sub:'Restaurant POS', tag:'Food & hospitality', cat:'Business', chips:['Tables','Kitchen','Bills','Reports'], c1:'#fda4af', c2:'#f43f5e', c3:'#be123c', link:'', desc:'Table-side ordering, kitchen tickets, menu management, split bills and daily sales reports. For restaurants that move fast and hate mistakes.' },
+    { id:'church', icon:'church', name:'Congre', accent:'gate', sub:'Church & Chama', tag:'Community & faith', cat:'Community', chips:['Members','Contributions','Welfare','Events'], c1:'#fcd34d', c2:'#f59e0b', c3:'#b45309', link:'', desc:'Member registry, contributions and tithes, attendance at services, events, welfare (chama) balances — for churches, mosques and community saving groups.' },
+    { id:'property', icon:'property', name:'Home', accent:'Base', sub:'Property & Rent', tag:'Real estate', cat:'Property', chips:['Tenants','Rent','Receipts','Maintenance'], c1:'#5eead4', c2:'#14b8a6', c3:'#0f766e', link:'', desc:'Tenants, leases, rent collection, receipts and maintenance requests — know who has paid and who has not, at a glance, with clean reports for landlords.' },
+    { id:'hotel', icon:'hotel', name:'Stay', accent:'Ease', sub:'Hotel & Guest House', tag:'Hospitality', cat:'Business', chips:['Bookings','Rooms','Invoices','Occupancy'], c1:'#f0abfc', c2:'#d946ef', c3:'#a21caf', link:'', desc:'Room bookings, check-in and check-out, housekeeping, invoices and occupancy reports. Fewer double-bookings, happier guests.' },
+    { id:'savings', icon:'savings', name:'Cash', accent:'Circle', sub:'Savings & Susu', tag:'Savings groups', cat:'Community', chips:['Savings','Loans','Payouts','Statements'], c1:'#bef264', c2:'#84cc16', c3:'#4d7c0f', link:'', desc:'Member savings, rotating payouts, loans with repayment schedules and clean statements — for susu clubs, village savings groups and small lenders.' },
+    { id:'build', icon:'build', name:'Build', accent:'Cost', sub:'Construction Estimator', tag:'Construction', cat:'Property', chips:['USD & LRD','PDF reports','Excel export','Foundation · Roofing'], c1:'#93c5fd', c2:'#3b82f6', c3:'#1d4ed8', link:'', desc:'Estimate foundations, walls and roofing in USD or LRD, then print a clean client report or export the full breakdown to Excel.' },
+  ],
+  team: [
+    { id:'t1', role:'Founder', title:'Founder & Lead Developer', name:'[Your Name]', init:'AD', photo:'', bio:'Architect of ArcDigital. Writes the backend, ships the frontend, answers the phone. Started this to fix a problem he kept seeing in Liberian schools.', c1:'#fdba74', c2:'#f97316', c3:'#c2410c', links:'phone|tel:0761980718|Call\nwa|https://wa.me/231761980718|WhatsApp\nin|#|LinkedIn\ngh|#|GitHub' },
+    { id:'t2', role:'Design', title:'Lead Designer', name:'[Team Member]', init:'DS', photo:'', bio:'Draws the interfaces you actually enjoy using. Turns messy admin requirements into clean screens — dark mode included, obviously.', c1:'#f0abfc', c2:'#d946ef', c3:'#a21caf', links:'phone|tel:0888133667|Call\nig|#|Instagram\nin|#|LinkedIn' },
+    { id:'t3', role:'Backend', title:'Backend Engineer', name:'[Team Member]', init:'BE', photo:'', bio:"Keeps the database fast and the APIs honest. Sleuths down bugs at 2am. If a receipt prints or a report card loads, that's usually him.", c1:'#7dd3fc', c2:'#0ea5e9', c3:'#0369a1', links:'gh|#|GitHub\nin|#|LinkedIn' },
+    { id:'t4', role:'Mobile', title:'Mobile Engineer', name:'[Team Member]', init:'ME', photo:'', bio:"Makes sure ArcDigital works on the cheapest Android phone on the worst network. Parents check fees on the bus — that's on her.", c1:'#6ee7b7', c2:'#10b981', c3:'#047857', links:'gh|#|GitHub\nin|#|LinkedIn' },
+    { id:'t5', role:'Support', title:'Client Success', name:'[Team Member]', init:'CS', photo:'', bio:"Answers the phone when a principal can't log in 5 minutes before report cards go out. Onboards every new school personally.", c1:'#fcd34d', c2:'#f59e0b', c3:'#b45309', links:'phone|tel:0761980718|Call\nmail|mailto:hello@arcdigital.app|Email\nwa|https://wa.me/231761980718|WhatsApp' },
+  ],
+  services: [
+    { id:'s1', icon:'school', title:'School management', desc:'Full K-12 platforms: enrolment, fees, results, attendance, timetables, ID cards, transcripts — the whole thing.' },
+    { id:'s2', icon:'hospital', title:'Hospital & clinic systems', desc:'Patient records, appointments, prescriptions, lab results, staff scheduling, billing — safe and paperless.' },
+    { id:'s3', icon:'hr', title:'HR & payroll', desc:'Staff records, attendance, leave, payroll, performance reviews, recruitment — for growing companies.' },
+    { id:'s4', icon:'inventory', title:'Inventory & POS', desc:'Stock across locations, counter sales, receipts, daily reports — for shops and pharmacies.' },
+    { id:'s5', icon:'restaurant', title:'Restaurants & hotels', desc:'Table-side orders, kitchen tickets, room bookings, invoices and occupancy — hospitality without the chaos.' },
+    { id:'s6', icon:'church', title:'Church, chama & susu', desc:'Member registry, contributions, welfare balances, savings and loans, events and attendance.' },
+    { id:'s7', icon:'property', title:'Property & rent', desc:'Tenants, leases, rent collection, receipts and maintenance — know who has paid at a glance.' },
+    { id:'s8', icon:'build', title:'Construction estimating', desc:'Foundation, walls and roofing estimates in USD or LRD, with printable reports and Excel export.' },
+    { id:'s9', icon:'idea', title:'Bring your own idea', desc:"Have something else in mind? Describe it in one call and I'll tell you honestly what it takes." },
+  ],
+  media: [],
+};
+
+/* ───────── state helpers ───────── */
+let state = load();
+let dirty = false;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return structuredClone(DEFAULTS);
+    const parsed = JSON.parse(raw);
+    // shallow merge to survive new fields
+    return { ...structuredClone(DEFAULTS), ...parsed,
+      site:    { ...DEFAULTS.site,    ...(parsed.site||{}) },
+      hero:    { ...DEFAULTS.hero,    ...(parsed.hero||{}) },
+      contact: { ...DEFAULTS.contact, ...(parsed.contact||{}) },
+      stats:   Array.isArray(parsed.stats)   ? parsed.stats   : structuredClone(DEFAULTS.stats),
+      projects:Array.isArray(parsed.projects)? parsed.projects: structuredClone(DEFAULTS.projects),
+      team:    Array.isArray(parsed.team)    ? parsed.team    : structuredClone(DEFAULTS.team),
+      services:Array.isArray(parsed.services)? parsed.services: structuredClone(DEFAULTS.services),
+      media:   Array.isArray(parsed.media)   ? parsed.media   : [],
+    };
+  } catch { return structuredClone(DEFAULTS); }
+}
+function save() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    markSaved();
+  } catch (e) {
+    toast('Storage full — try removing some uploaded images.', 'error');
+    console.error(e);
+  }
+}
+function markSaved() {
+  const el = document.getElementById('saveStatus');
+  el.style.opacity = '1';
+  clearTimeout(markSaved._t);
+  markSaved._t = setTimeout(() => { el.style.opacity = '0'; }, 1600);
+}
+function uid(prefix='id') { return prefix + '_' + Math.random().toString(36).slice(2,9); }
+
+/* ───────── toast ───────── */
+function toast(msg, type='success') {
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  const bg = type === 'error' ? 'bg-red-600' : type === 'info' ? 'bg-sky-600' : 'bg-emerald-600';
+  el.className = `toast ${bg} text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2`;
+  el.innerHTML = `<span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(()=>el.remove(),300); }, 2600);
+}
+
+/* ───────── tab switching ───────── */
+const TITLES = {
+  dashboard: ['Dashboard','Overview of your portfolio'],
+  projects:  ['Projects','Manage portfolio entries and demo links'],
+  team:      ['Team','People shown on the site'],
+  services:  ['Services','What you build'],
+  marquee:   ['Marquee','Scrolling industries strip'],
+  stats:     ['Stats','Hero counters'],
+  site:      ['Site settings','Title, logo, favicon, demo URL'],
+  contact:   ['Contact info','Phones, email, hours'],
+  hero:      ['Hero section','Headline, subheadline, badge'],
+  media:     ['Media library','Uploaded images'],
+};
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tab = document.getElementById('tab-' + name);
+  if (tab) tab.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  const [t, s] = TITLES[name] || ['Admin',''];
+  document.getElementById('pageTitle').textContent = t;
+  document.getElementById('pageSub').textContent = s;
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'projects') renderProjects();
+  if (name === 'team') renderTeam();
+  if (name === 'services') renderServices();
+  if (name === 'marquee') loadMarquee();
+  if (name === 'stats') loadStats();
+  if (name === 'site') loadSiteSettings();
+  if (name === 'contact') loadContact();
+  if (name === 'hero') loadHero();
+  if (name === 'media') renderMedia();
+  toggleSidebar(false);
+}
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+function toggleSidebar(open) {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebarOverlay');
+  if (open) { sb.classList.add('open'); ov.classList.add('show'); }
+  else { sb.classList.remove('open'); ov.classList.remove('show'); }
+}
+
+/* ───────── modals ───────── */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open')); });
+
+let pendingConfirm = null;
+function confirmAction(title, msg, onYes) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  const btn = document.getElementById('confirmYes');
+  const clone = btn.cloneNode(true);
+  btn.replaceWith(clone);
+  clone.addEventListener('click', () => { closeModal('confirmModal'); onYes(); });
+  openModal('confirmModal');
+}
+
+/* ───────── dashboard ───────── */
+function renderDashboard() {
+  document.getElementById('dashProjects').textContent = state.projects.length;
+  document.getElementById('dashTeam').textContent = state.team.length;
+  document.getElementById('dashServices').textContent = state.services.length;
+  document.getElementById('dashLinked').textContent = state.projects.filter(p => p.link && p.link.trim()).length;
+
+  // health
+  const setHealth = (id, ok, okText='OK', badText='Missing') => {
+    const el = document.getElementById(id);
+    el.className = 'badge ' + (ok ? 'badge-on' : 'badge-off');
+    el.textContent = ok ? okText : badText;
+  };
+  setHealth('healthDemo', !!(state.site.demoUrl && state.site.demoUrl.trim()));
+  setHealth('healthLogo', !!state.site.logo);
+  setHealth('healthPhone', !!(state.contact.phone1 && state.contact.phone1.trim()));
+  setHealth('healthTeam', state.team.length > 0 && state.team.some(t => t.photo));
+
+  // recent
+  const wrap = document.getElementById('dashRecent');
+  const recent = state.projects.slice(0, 5);
+  if (!recent.length) { wrap.innerHTML = '<p class="text-xs text-slate-500">No projects yet.</p>'; return; }
+  wrap.innerHTML = recent.map(p => `
+    <div class="flex items-center gap-3 row-card">
+      <div class="thumb" style="background:${p.c3 || '#332720'}">${(p.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold truncate">${esc(p.name||'')}<span style="color:${p.c2||'#f97316'}">${esc(p.accent||'')}</span></p>
+        <p class="text-[11px] text-slate-500 truncate">${esc(p.sub||'')}</p>
+      </div>
+      <span class="badge ${p.link && p.link.trim() ? 'badge-on' : 'badge-off'}">${p.link && p.link.trim() ? 'Linked' : 'No link'}</span>
+    </div>`).join('');
+}
+
+/* ───────── projects ───────── */
+function renderProjects() {
+  const wrap = document.getElementById('projectList');
+  const empty = document.getElementById('projectEmpty');
+  document.getElementById('projCount').textContent = state.projects.length;
+  if (!state.projects.length) { wrap.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  wrap.innerHTML = state.projects.map((p, i) => `
+    <div class="row-card flex items-start gap-3">
+      <div class="drag-handle p-1 mt-1" title="Reorder">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+      </div>
+      <div class="thumb" style="background:${p.c3 || '#332720'}">${(p.name||'?').slice(0,2).toUpperCase()}</div>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2 flex-wrap">
+          <p class="text-sm font-bold">${esc(p.name||'')}<span style="color:${p.c2||'#f97316'}">${esc(p.accent||'')}</span></p>
+          <span class="badge badge-on">${esc(p.cat||'—')}</span>
+          ${p.link && p.link.trim() ? '<span class="badge badge-on">Linked</span>' : '<span class="badge badge-off">No link</span>'}
+        </div>
+        <p class="text-[11px] text-slate-500 mt-0.5">${esc(p.sub||'')} · ${p.chips?.length||0} chips</p>
+        ${p.link && p.link.trim() ? `<a href="${esc(p.link)}" target="_blank" class="text-[11px] text-brand-400 hover:text-brand-300 break-all inline-block mt-1">${esc(p.link)}</a>` : ''}
+      </div>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <button onclick="moveProject(${i}, -1)" class="btn btn-g btn-sm" title="Move up" ${i===0?'disabled style="opacity:.3"':''}>↑</button>
+        <button onclick="moveProject(${i}, 1)" class="btn btn-g btn-sm" title="Move down" ${i===state.projects.length-1?'disabled style="opacity:.3"':''}>↓</button>
+        <button onclick="openProjectModal('${p.id}')" class="btn btn-g btn-sm">Edit</button>
+        <button onclick="deleteProject('${p.id}')" class="btn btn-danger btn-sm">Delete</button>
+      </div>
+    </div>`).join('');
+}
+function moveProject(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= state.projects.length) return;
+  [state.projects[i], state.projects[j]] = [state.projects[j], state.projects[i]];
+  save(); renderProjects();
+}
+function openProjectModal(id) {
+  const isEdit = !!id;
+  document.getElementById('projectModalTitle').textContent = isEdit ? 'Edit project' : 'Add project';
+  const p = isEdit ? state.projects.find(x => x.id === id) : { id:uid('p'), icon:'school', name:'', accent:'', sub:'', tag:'', cat:'', chips:[], c1:'#fdba74', c2:'#f97316', c3:'#c2410c', link:'', desc:'' };
+  document.getElementById('pId').value = p.id;
+  document.getElementById('pName').value = p.name || '';
+  document.getElementById('pAccent').value = p.accent || '';
+  document.getElementById('pSub').value = p.sub || '';
+  document.getElementById('pCat').value = p.cat || '';
+  document.getElementById('pTag').value = p.tag || '';
+  document.getElementById('pLink').value = p.link || '';
+  document.getElementById('pDesc').value = p.desc || '';
+  document.getElementById('pChips').value = (p.chips || []).join(', ');
+  document.getElementById('pC1').value = p.c1 || '#fdba74';
+  document.getElementById('pC2').value = p.c2 || '#f97316';
+  document.getElementById('pC3').value = p.c3 || '#c2410c';
+  document.getElementById('pIcon').value = p.icon || 'school';
+  openModal('projectModal');
+}
+function saveProject() {
+  const id = document.getElementById('pId').value;
+  const name = document.getElementById('pName').value.trim();
+  const accent = document.getElementById('pAccent').value.trim();
+  const sub = document.getElementById('pSub').value.trim();
+  const cat = document.getElementById('pCat').value.trim();
+  if (!name || !accent || !sub || !cat) { toast('Name, accent, subtitle and category are required.', 'error'); return; }
+  const link = document.getElementById('pLink').value.trim();
+  const obj = {
+    id, name, accent, sub, cat,
+    tag: document.getElementById('pTag').value.trim(),
+    link,
+    desc: document.getElementById('pDesc').value.trim(),
+    chips: document.getElementById('pChips').value.split(',').map(s=>s.trim()).filter(Boolean),
+    c1: document.getElementById('pC1').value.trim() || '#fdba74',
+    c2: document.getElementById('pC2').value.trim() || '#f97316',
+    c3: document.getElementById('pC3').value.trim() || '#c2410c',
+    icon: document.getElementById('pIcon').value,
+  };
+  const idx = state.projects.findIndex(p => p.id === id);
+  if (idx >= 0) state.projects[idx] = obj; else state.projects.push(obj);
+  save(); closeModal('projectModal'); renderProjects(); renderDashboard();
+  toast(idx >= 0 ? 'Project updated' : 'Project created');
+}
+function deleteProject(id) {
+  const p = state.projects.find(x => x.id === id);
+  confirmAction('Delete project?', `"${p?.name||''}${p?.accent||''}" will be removed permanently.`, () => {
+    state.projects = state.projects.filter(x => x.id !== id);
+    save(); renderProjects(); renderDashboard();
+    toast('Project deleted');
+  });
+}
+
+/* ───────── team ───────── */
+function renderTeam() {
+  const wrap = document.getElementById('teamList');
+  const empty = document.getElementById('teamEmpty');
+  document.getElementById('teamCount').textContent = state.team.length;
+  if (!state.team.length) { wrap.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  wrap.innerHTML = state.team.map(t => `
+    <div class="row-card flex items-start gap-3">
+      <div class="thumb">
+        ${t.photo ? `<img src="${t.photo}" alt="" class="h-full w-full object-cover" />` : (t.init || '?')}
+      </div>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2 flex-wrap">
+          <p class="text-sm font-bold">${esc(t.name||'Unnamed')}</p>
+          <span class="badge badge-on">${esc(t.role||'—')}</span>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-0.5">${esc(t.title||'')}</p>
+        <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">${esc(t.bio||'')}</p>
+      </div>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <button onclick="openTeamModal('${t.id}')" class="btn btn-g btn-sm">Edit</button>
+        <button onclick="deleteTeam('${t.id}')" class="btn btn-danger btn-sm">Delete</button>
+      </div>
+    </div>`).join('');
+}
+function openTeamModal(id) {
+  const isEdit = !!id;
+  document.getElementById('teamModalTitle').textContent = isEdit ? 'Edit team member' : 'Add team member';
+  const t = isEdit ? state.team.find(x => x.id === id) : { id:uid('t'), role:'', title:'', name:'', init:'', photo:'', bio:'', c1:'#fdba74', c2:'#f97316', c3:'#c2410c', links:'' };
+  document.getElementById('tId').value = t.id;
+  document.getElementById('tRole').value = t.role || '';
+  document.getElementById('tTitle').value = t.title || '';
+  document.getElementById('tName').value = t.name || '';
+  document.getElementById('tInit').value = t.init || '';
+  document.getElementById('tBio').value = t.bio || '';
+  document.getElementById('tPhoto').value = t.photo || '';
+  document.getElementById('tC1').value = t.c1 || '#fdba74';
+  document.getElementById('tC2').value = t.c2 || '#f97316';
+  document.getElementById('tC3').value = t.c3 || '#c2410c';
+  document.getElementById('tLinks').value = t.links || '';
+  updateTeamPhotoPreview(t.photo);
+  openModal('teamModal');
+}
+function updateTeamPhotoPreview(dataUrl) {
+  const img = document.getElementById('tPhotoPreview');
+  const ph = document.getElementById('tPhotoPlaceholder');
+  if (dataUrl) { img.src = dataUrl; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+  else { img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden'); }
+}
+function handleTeamPhoto(e) {
+  const file = e.target.files[0]; if (!file) return;
+  fileToDataURL(file, 1.5 * 1024 * 1024).then(url => {
+    document.getElementById('tPhoto').value = url;
+    updateTeamPhotoPreview(url);
+  }).catch(err => toast(err, 'error'));
+  e.target.value = '';
+}
+function removeTeamPhoto() {
+  document.getElementById('tPhoto').value = '';
+  updateTeamPhotoPreview('');
+}
+function saveTeam() {
+  const id = document.getElementById('tId').value;
+  const name = document.getElementById('tName').value.trim();
+  if (!name) { toast('Name is required.', 'error'); return; }
+  const obj = {
+    id, name,
+    init: document.getElementById('tInit').value.trim().slice(0,2).toUpperCase() || name.slice(0,2).toUpperCase(),
+    role: document.getElementById('tRole').value.trim() || 'Team',
+    title: document.getElementById('tTitle').value.trim() || 'Team member',
+    bio: document.getElementById('tBio').value.trim(),
+    photo: document.getElementById('tPhoto').value || '',
+    c1: document.getElementById('tC1').value.trim() || '#fdba74',
+    c2: document.getElementById('tC2').value.trim() || '#f97316',
+    c3: document.getElementById('tC3').value.trim() || '#c2410c',
+    links: document.getElementById('tLinks').value,
+  };
+  const idx = state.team.findIndex(t => t.id === id);
+  if (idx >= 0) state.team[idx] = obj; else state.team.push(obj);
+  save(); closeModal('teamModal'); renderTeam(); renderDashboard();
+  toast(idx >= 0 ? 'Team member updated' : 'Team member added');
+}
+function deleteTeam(id) {
+  const t = state.team.find(x => x.id === id);
+  confirmAction('Delete team member?', `"${t?.name||''}" will be removed.`, () => {
+    state.team = state.team.filter(x => x.id !== id);
+    save(); renderTeam(); renderDashboard();
+    toast('Team member deleted');
+  });
+}
+
+/* ───────── services ───────── */
+function renderServices() {
+  const wrap = document.getElementById('serviceList');
+  const empty = document.getElementById('serviceEmpty');
+  if (!state.services.length) { wrap.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  wrap.innerHTML = state.services.map(s => `
+    <div class="row-card flex items-start gap-3">
+      <div class="thumb" style="background:#332720;color:#fdba74;font-size:.7rem;font-weight:800">${esc(s.icon||'')}</div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-bold">${esc(s.title||'')}</p>
+        <p class="text-[11px] text-slate-400 mt-1">${esc(s.desc||'')}</p>
+      </div>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <button onclick="openServiceModal('${s.id}')" class="btn btn-g btn-sm">Edit</button>
+        <button onclick="deleteService('${s.id}')" class="btn btn-danger btn-sm">Delete</button>
+      </div>
+    </div>`).join('');
+}
+function openServiceModal(id) {
+  const isEdit = !!id;
+  document.getElementById('serviceModalTitle').textContent = isEdit ? 'Edit service' : 'Add service';
+  const s = isEdit ? state.services.find(x => x.id === id) : { id:uid('s'), icon:'idea', title:'', desc:'' };
+  document.getElementById('sId').value = s.id;
+  document.getElementById('sIcon').value = s.icon || 'idea';
+  document.getElementById('sTitle').value = s.title || '';
+  document.getElementById('sDesc').value = s.desc || '';
+  openModal('serviceModal');
+}
+function saveService() {
+  const id = document.getElementById('sId').value;
+  const title = document.getElementById('sTitle').value.trim();
+  if (!title) { toast('Title is required.', 'error'); return; }
+  const obj = {
+    id, title,
+    icon: document.getElementById('sIcon').value,
+    desc: document.getElementById('sDesc').value.trim(),
+  };
+  const idx = state.services.findIndex(s => s.id === id);
+  if (idx >= 0) state.services[idx] = obj; else state.services.push(obj);
+  save(); closeModal('serviceModal'); renderServices(); renderDashboard();
+  toast(idx >= 0 ? 'Service updated' : 'Service added');
+}
+function deleteService(id) {
+  confirmAction('Delete service?', 'This service will be removed.', () => {
+    state.services = state.services.filter(x => x.id !== id);
+    save(); renderServices(); renderDashboard();
+    toast('Service deleted');
+  });
+}
+
+/* ───────── marquee ───────── */
+function loadMarquee() {
+  document.getElementById('marqueeInput').value = state.marquee || '';
+  renderMarqueePreview();
+}
+function renderMarqueePreview() {
+  const items = (state.marquee || '').split(',').map(s => s.trim()).filter(Boolean);
+  document.getElementById('marqueePreview').innerHTML = items.length
+    ? items.map(t => `<span class="chip">${esc(t)}</span>`).join('')
+    : '<span class="text-xs text-slate-500">Empty</span>';
+}
+function saveMarquee() {
+  state.marquee = document.getElementById('marqueeInput').value;
+  save(); renderMarqueePreview(); toast('Marquee saved');
+}
+document.getElementById('marqueeInput')?.addEventListener('input', () => { /* live preview optional */ });
+
+/* ───────── stats ───────── */
+function loadStats() {
+  const wrap = document.getElementById('statsEditor');
+  wrap.innerHTML = state.stats.map((s, i) => `
+    <div class="row-card">
+      <div class="grid grid-cols-3 gap-2">
+        <div class="col-span-2"><label class="label">Label</label><input data-stat="label" data-i="${i}" class="input" value="${esc(s.label||'')}" /></div>
+        <div><label class="label">Count</label><input data-stat="count" data-i="${i}" class="input" value="${esc(s.count||'')}" /></div>
+      </div>
+      <div class="mt-2"><label class="label">Suffix</label><input data-stat="suffix" data-i="${i}" class="input" value="${esc(s.suffix||'')}" /></div>
+    </div>`).join('');
+  wrap.querySelectorAll('input[data-stat]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = +inp.dataset.i;
+      if (!state.stats[i]) return;
+      state.stats[i][inp.dataset.stat] = inp.value;
+    });
+  });
+}
+function saveStats() {
+  save(); toast('Stats saved');
+}
+
+/* ───────── site settings ───────── */
+function loadSiteSettings() {
+  document.getElementById('siteTitle').value = state.site.title || '';
+  document.getElementById('siteDesc').value = state.site.desc || '';
+  document.getElementById('siteTheme').value = state.site.theme || '';
+  document.getElementById('siteDemoUrl').value = state.site.demoUrl || '';
+  updateLogoPreview(state.site.logo);
+  updateFaviconPreview(state.site.favicon);
+}
+function saveSiteSettings() {
+  state.site.title = document.getElementById('siteTitle').value.trim();
+  state.site.desc = document.getElementById('siteDesc').value.trim();
+  state.site.theme = document.getElementById('siteTheme').value.trim();
+  state.site.demoUrl = document.getElementById('siteDemoUrl').value.trim();
+  save(); renderDashboard();
+  toast('Site settings saved');
+}
+function updateLogoPreview(dataUrl) {
+  const img = document.getElementById('logoPreview');
+  const ph = document.getElementById('logoPlaceholder');
+  const sb = document.getElementById('sidebarLogo');
+  if (dataUrl) {
+    img.src = dataUrl; img.classList.remove('hidden'); ph.classList.add('hidden');
+    if (sb) { sb.src = dataUrl; sb.style.display = 'block'; }
+  } else {
+    img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden');
+    if (sb) { sb.src = ''; sb.style.display = 'none'; }
+  }
+}
+function updateFaviconPreview(dataUrl) {
+  const img = document.getElementById('faviconPreview');
+  const ph = document.getElementById('faviconPlaceholder');
+  if (dataUrl) { img.src = dataUrl; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+  else { img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden'); }
+}
+function handleLogoUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  fileToDataURL(file, 2 * 1024 * 1024).then(url => {
+    state.site.logo = url; save(); updateLogoPreview(url); renderDashboard();
+    toast('Logo uploaded');
+  }).catch(err => toast(err, 'error'));
+  e.target.value = '';
+}
+function handleFaviconUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  fileToDataURL(file, 512 * 1024).then(url => {
+    state.site.favicon = url; save(); updateFaviconPreview(url);
+    toast('Favicon uploaded');
+  }).catch(err => toast(err, 'error'));
+  e.target.value = '';
+}
+function removeLogo() {
+  state.site.logo = ''; save(); updateLogoPreview(''); renderDashboard();
+  toast('Logo removed', 'info');
+}
+function removeFavicon() {
+  state.site.favicon = ''; save(); updateFaviconPreview('');
+  toast('Favicon removed', 'info');
+}
+
+/* ───────── contact ───────── */
+function loadContact() {
+  const c = state.contact;
+  document.getElementById('cPhone1').value = c.phone1 || '';
+  document.getElementById('cPhone2').value = c.phone2 || '';
+  document.getElementById('cWhatsApp1').value = c.wa1 || '';
+  document.getElementById('cWhatsApp2').value = c.wa2 || '';
+  document.getElementById('cEmail').value = c.email || '';
+  document.getElementById('cHours').value = c.hours || '';
+}
+function saveContact() {
+  state.contact = {
+    phone1: document.getElementById('cPhone1').value.trim(),
+    phone2: document.getElementById('cPhone2').value.trim(),
+    wa1: document.getElementById('cWhatsApp1').value.trim(),
+    wa2: document.getElementById('cWhatsApp2').value.trim(),
+    email: document.getElementById('cEmail').value.trim(),
+    hours: document.getElementById('cHours').value.trim(),
+  };
+  save(); renderDashboard();
+  toast('Contact info saved');
+}
+
+/* ───────── hero ───────── */
+function loadHero() {
+  document.getElementById('heroLine1').value = state.hero.line1 || '';
+  document.getElementById('heroLine3').value = state.hero.line3 || '';
+  document.getElementById('heroRotWords').value = state.hero.rotWords || '';
+  document.getElementById('heroSub').value = state.hero.sub || '';
+  document.getElementById('heroBadge').value = state.hero.badge || '';
+}
+function saveHero() {
+  state.hero = {
+    line1: document.getElementById('heroLine1').value.trim(),
+    line3: document.getElementById('heroLine3').value.trim(),
+    rotWords: document.getElementById('heroRotWords').value.trim(),
+    sub: document.getElementById('heroSub').value.trim(),
+    badge: document.getElementById('heroBadge').value.trim(),
+  };
+  save();
+  toast('Hero saved');
+}
+
+/* ───────── media library ───────── */
+function renderMedia() {
+  const grid = document.getElementById('mediaGrid');
+  const empty = document.getElementById('mediaEmpty');
+  if (!state.media.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  grid.innerHTML = state.media.map(m => `
+    <div class="row-card p-2">
+      <div class="aspect-square rounded-lg overflow-hidden bg-black/30 mb-2">
+        <img src="${m.url}" alt="" class="h-full w-full object-cover" />
+      </div>
+      <p class="text-[10px] text-slate-400 truncate" title="${esc(m.name||'')}">${esc(m.name||'image')}</p>
+      <div class="flex gap-1 mt-1.5">
+        <button onclick="copyMediaUrl('${m.id}')" class="btn btn-g btn-sm flex-1 text-[10px]">Copy URL</button>
+        <button onclick="deleteMedia('${m.id}')" class="btn btn-danger btn-sm text-[10px]">Del</button>
+      </div>
+    </div>`).join('');
+}
+function handleMediaUpload(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  files.reduce((chain, file) => chain.then(() => new Promise((resolve) => {
+    fileToDataURL(file, 2 * 1024 * 1024).then(url => {
+      state.media.unshift({ id: uid('m'), name: file.name, url, size: file.size });
+      save(); renderMedia();
+      resolve();
+    }).catch(err => { toast(err, 'error'); resolve(); });
+  })), Promise.resolve()).then(() => toast('Upload complete'));
+  e.target.value = '';
+}
+function copyMediaUrl(id) {
+  const m = state.media.find(x => x.id === id); if (!m) return;
+  navigator.clipboard.writeText(m.url)
+    .then(() => toast('URL copied'))
+    .catch(() => toast('Could not copy', 'error'));
+}
+function deleteMedia(id) {
+  confirmAction('Delete image?', 'This image will be removed from the library.', () => {
+    state.media = state.media.filter(x => x.id !== id);
+    save(); renderMedia();
+    toast('Image deleted');
+  });
+}
+
+/* ───────── import / export / reset ───────── */
+function exportData() {
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `arcdigital-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Data exported');
+}
+function importData(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      state = { ...structuredClone(DEFAULTS), ...parsed,
+        site:    { ...DEFAULTS.site,    ...(parsed.site||{}) },
+        hero:    { ...DEFAULTS.hero,    ...(parsed.hero||{}) },
+        contact: { ...DEFAULTS.contact, ...(parsed.contact||{}) },
+        stats:   Array.isArray(parsed.stats)   ? parsed.stats   : structuredClone(DEFAULTS.stats),
+        projects:Array.isArray(parsed.projects)? parsed.projects: structuredClone(DEFAULTS.projects),
+        team:    Array.isArray(parsed.team)    ? parsed.team    : structuredClone(DEFAULTS.team),
+        services:Array.isArray(parsed.services)? parsed.services: structuredClone(DEFAULTS.services),
+        media:   Array.isArray(parsed.media)   ? parsed.media   : [],
+      };
+      save();
+      renderAll();
+      toast('Data imported');
+    } catch (err) { toast('Invalid JSON file', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+function resetAll() {
+  confirmAction('Reset all data?', 'All your custom changes will be lost and defaults restored.', () => {
+    state = structuredClone(DEFAULTS);
+    save();
+    renderAll();
+    toast('Reset to defaults', 'info');
+  });
+}
+
+/* ───────── helpers ───────── */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function fileToDataURL(file, maxBytes) {
+  return new Promise((resolve, reject) => {
+    if (maxBytes && file.size > maxBytes) {
+      reject(`File too large (${(file.size/1024/1024).toFixed(1)}MB). Max ${(maxBytes/1024/1024).toFixed(2)}MB.`);
+      return;
+    }
+    if (!file.type.startsWith('image/') && !file.name.endsWith('.ico')) {
+      reject('Only image files are allowed.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject('Could not read file.');
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ───────── drop zones ───────── */
+function bindDropzone(zoneId, inputId, handler) {
+  const zone = document.getElementById(zoneId);
+  if (!zone) return;
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('dragover'); }));
+  zone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0]; if (!file) return;
+    const fakeEvent = { target: { files: [file], value: '' } };
+    handler(fakeEvent);
+  });
+}
+
+/* ───────── initial render ───────── */
+function renderAll() {
+  updateLogoPreview(state.site.logo);
+  updateFaviconPreview(state.site.favicon);
+  renderDashboard();
+  renderProjects();
+  renderTeam();
+  renderServices();
+  renderMedia();
+  loadMarquee();
+  loadStats();
+  loadSiteSettings();
+  loadContact();
+  loadHero();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderAll();
+  bindDropzone('logoDropzone', 'logoInput', handleLogoUpload);
+  bindDropzone('faviconDropzone', 'faviconInput', handleFaviconUpload);
+  bindDropzone('teamPhotoDrop', 'tPhotoInput', handleTeamPhoto);
+
+  // keyboard shortcut: Ctrl/Cmd+S = save active tab
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      const active = document.querySelector('.tab.active')?.id?.replace('tab-','');
+      if (active === 'marquee') saveMarquee();
+      else if (active === 'stats') saveStats();
+      else if (active === 'site') saveSiteSettings();
+      else if (active === 'contact') saveContact();
+      else if (active === 'hero') saveHero();
+      else if (active === 'projects' || active === 'team' || active === 'services') save();
+      else save();
+    }
+  });
+});
+</script>
+</body>
+</html>
