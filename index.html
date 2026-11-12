@@ -208,6 +208,7 @@
       <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g></symbol>
       <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></g></symbol>
       <symbol id="i-cap" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></g></symbol>
+      <symbol id="i-cog" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></g></symbol>
     </defs>
   </svg>
 
@@ -234,6 +235,12 @@
         </ul>
 
         <div class="flex items-center gap-2">
+          <!-- Admin link -->
+          <a href="admin.html" target="_blank" rel="noopener" class="hidden sm:inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition" title="Admin dashboard">
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#i-cog"/></svg>
+            <span class="hidden lg:inline">Admin</span>
+          </a>
+
           <a href="tel:0761980718" class="hidden sm:inline-flex items-center gap-2 rounded-xl px-3 lg:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-200 hover:text-white hover:bg-white/5 transition">
             <svg class="h-4 w-4 text-brand-400" aria-hidden="true"><use href="#i-phone"/></svg>
             <span class="hidden lg:inline">0761 980 718</span><span class="lg:hidden">Call</span>
@@ -259,6 +266,7 @@
             <a href="#team" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Team</a>
             <a href="#process" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Process</a>
             <a href="#contact" class="block px-4 py-2.5 rounded-lg hover:bg-white/5">Contact</a>
+            <a href="admin.html" target="_blank" rel="noopener" class="block px-4 py-2.5 rounded-lg hover:bg-white/5 text-brand-300 font-semibold">⚙️ Admin dashboard</a>
             <a href="tel:0761980718" class="block mt-1 px-4 py-2.5 rounded-lg bg-brand-600 text-center font-semibold">📞 Call 0761 980 718</a>
             <a href="tel:0888133667" class="block mt-1 px-4 py-2.5 rounded-lg glass text-center font-semibold">📞 Call 0888 133 667</a>
           </div>
@@ -619,6 +627,7 @@
             <li><a href="#services" class="hover:text-white transition">Services</a></li>
             <li><a href="#process" class="hover:text-white transition">Process</a></li>
             <li><a href="#contact" class="hover:text-white transition">Contact</a></li>
+            <li><a href="admin.html" target="_blank" rel="noopener" class="hover:text-white transition inline-flex items-center gap-1.5"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-cog"/></svg> Admin dashboard ↗</a></li>
           </ul>
         </div>
         <div>
@@ -672,7 +681,7 @@
   ].map(p => ({ c1:p.pal[0], c2:p.pal[1], c3:p.pal[2], ...p }));
 
   const TEAM = [
-    { role:'Founder', title:'Founder & Lead Developer', name:'[Archie Swen]',   init:'AD', photo:'TEAM_PHOTO_1', pal:['#fdba74','#f97316','#c2410c'], bio:'Architect of ArcDigital. Writes the backend, ships the frontend, answers the phone. Started this to fix a problem he kept seeing in Liberian schools.', links:[['phone','tel:0761980718','Call'],['wa','https://wa.me/231761980718','WhatsApp'],['in','#','LinkedIn'],['gh','#','GitHub']] },
+    { role:'Founder', title:'Founder & Lead Developer', name:'[Your Name]',   init:'AD', photo:'TEAM_PHOTO_1', pal:['#fdba74','#f97316','#c2410c'], bio:'Architect of ArcDigital. Writes the backend, ships the frontend, answers the phone. Started this to fix a problem he kept seeing in Liberian schools.', links:[['phone','tel:0761980718','Call'],['wa','https://wa.me/231761980718','WhatsApp'],['in','#','LinkedIn'],['gh','#','GitHub']] },
     { role:'Design',  title:'Lead Designer',            name:'[Team Member]', init:'DS', photo:'TEAM_PHOTO_2', pal:['#f0abfc','#d946ef','#a21caf'], bio:'Draws the interfaces you actually enjoy using. Turns messy admin requirements into clean screens — dark mode included, obviously.', links:[['phone','tel:0888133667','Call'],['ig','#','Instagram'],['in','#','LinkedIn']] },
     { role:'Backend', title:'Backend Engineer',         name:'[Team Member]', init:'BE', photo:'TEAM_PHOTO_3', pal:['#7dd3fc','#0ea5e9','#0369a1'], bio:'Keeps the database fast and the APIs honest. Sleuths down bugs at 2am. If a receipt prints or a report card loads, that\'s usually him.', links:[['gh','#','GitHub'],['in','#','LinkedIn']] },
     { role:'Mobile',  title:'Mobile Engineer',          name:'[Team Member]', init:'ME', photo:'TEAM_PHOTO_4', pal:['#6ee7b7','#10b981','#047857'], bio:'Makes sure ArcDigital works on the cheapest Android phone on the worst network. Parents check fees on the bus — that\'s on her.', links:[['gh','#','GitHub'],['in','#','LinkedIn']] },
