@@ -148,6 +148,10 @@
     #lockoutMsg.show { display:block; }
     @keyframes spinSlow { to{transform:rotate(360deg)} }
     .login-spinner { animation:spinSlow .8s linear infinite; }
+
+    /* ═══════════ STORAGE METER ═══════════ */
+    .meter { height:6px; background:rgba(255,255,255,.08); border-radius:3px; overflow:hidden; }
+    .meter-fill { height:100%; border-radius:3px; transition:width .4s ease; }
   </style>
 </head>
 
@@ -155,10 +159,8 @@
 
   <!-- ═══════════════════════════════════════════════════════════
        LOGIN SCREEN — gate before admin dashboard
-       Credentials stored as hashed values; no plain text in DOM
        ═══════════════════════════════════════════════════════════ -->
   <div id="loginScreen" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-
     <div class="login-card" id="loginCard">
       <div class="login-logo">
         <svg class="h-7 w-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -166,7 +168,6 @@
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </div>
-
       <h1 id="loginTitle" class="text-center text-xl font-extrabold tracking-tight">Arc<span class="text-gradient">Admin</span></h1>
       <p class="text-center text-xs text-slate-500 mt-1.5 mb-6">Sign in to manage your portfolio</p>
 
@@ -210,7 +211,6 @@
           </button>
         </div>
       </form>
-
       <p class="text-center text-[10px] text-slate-600 mt-6">Protected area · Authorised users only</p>
     </div>
   </div>
@@ -353,6 +353,20 @@
           <div class="panel rounded-2xl p-4"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Team</p><p id="dashTeam" class="mt-2 text-3xl font-extrabold text-gradient">0</p><p class="text-[10px] text-slate-500 mt-1">Members listed</p></div>
           <div class="panel rounded-2xl p-4"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Services</p><p id="dashServices" class="mt-2 text-3xl font-extrabold text-gradient">0</p><p class="text-[10px] text-slate-500 mt-1">Offered</p></div>
           <div class="panel rounded-2xl p-4"><p class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Linked</p><p id="dashLinked" class="mt-2 text-3xl font-extrabold text-gradient">0</p><p class="text-[10px] text-slate-500 mt-1">With live demo</p></div>
+        </div>
+
+        <!-- Storage meter -->
+        <div class="panel rounded-2xl p-4 mt-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold">Storage</h3>
+            <span id="storagePct" class="text-[11px] font-mono text-slate-400">—</span>
+          </div>
+          <div class="meter mb-2"><div id="storageFill" class="meter-fill bg-emerald-500" style="width:0%"></div></div>
+          <p id="storageText" class="text-[11px] text-slate-500">Calculating…</p>
+          <div class="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+            <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500"></span><span class="text-slate-400">localStorage (settings)</span></div>
+            <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-sky-500"></span><span class="text-slate-400">IndexedDB (media)</span></div>
+          </div>
         </div>
 
         <div class="grid lg:grid-cols-3 gap-4 mt-4">
@@ -554,7 +568,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h2 class="text-lg font-bold">Media library</h2>
-              <p class="text-xs text-slate-500">All uploaded images are stored here (in your browser).</p>
+              <p class="text-xs text-slate-500">All uploaded images are stored in IndexedDB (hundreds of MB available).</p>
             </div>
             <label class="btn btn-p cursor-pointer">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -758,14 +772,7 @@
 <script>
 /* ═══════════════════════════════════════════════════════════════
    AUTHENTICATION
-   Credentials are never stored as plain text. We store only a
-   SHA-256 hash of "username:password". Login compares the hash of
-   whatever the user types against this constant.
    ═══════════════════════════════════════════════════════════════ */
-
-/* Build "username:password" from char codes so the plain strings
-   don't appear literally in the file. Char codes spell
-   "Travolta" + ":" + "Admin123". */
 const _CRED = (() => {
   const u = String.fromCharCode(84,114,97,118,111,108,116,97); // Travolta
   const p = String.fromCharCode(65,100,109,105,110,49,50,51);   // Admin123
@@ -778,17 +785,14 @@ async function sha256(str) {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-/* Constants for lockout */
 const AUTH_KEY = 'arcdigital_auth_session';
 const FAILS_KEY = 'arcdigital_auth_fails';
 const LOCK_KEY = 'arcdigital_auth_lock';
 const MAX_FAILS = 5;
 const LOCK_MS = 30_000;
 
-/* Login attempt counter */
 let failedAttempts = +(localStorage.getItem(FAILS_KEY) || 0);
 
-/* ── LOGIN UI ── */
 const loginScreen = document.getElementById('loginScreen');
 const loginForm = document.getElementById('loginForm');
 const loginError = document.getElementById('loginError');
@@ -823,7 +827,6 @@ async function attemptLogin(username, password) {
   return hash === expected;
 }
 
-/* Lockout helpers */
 function isLockedOut() {
   const until = +(localStorage.getItem(LOCK_KEY) || 0);
   return until > Date.now() ? until : 0;
@@ -852,7 +855,6 @@ function showLockout() {
   lockoutMsg.classList.add('show');
 }
 
-/* Password visibility toggle */
 document.getElementById('pwToggle').addEventListener('click', () => {
   const pw = document.getElementById('loginPassword');
   const eyeOpen = document.getElementById('eyeOpen');
@@ -868,28 +870,21 @@ document.getElementById('pwToggle').addEventListener('click', () => {
   }
 });
 
-/* Form submit */
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideLoginError();
-
   if (isLockedOut()) { showLockout(); return; }
-
   const username = document.getElementById('loginUser').value.trim();
   const password = document.getElementById('loginPassword').value;
   const remember = document.getElementById('rememberMe').checked;
-
   if (!username || !password) {
     showLoginError('Please enter both username and password.');
     return;
   }
-
   setLoginLoading(true);
   await new Promise(r => setTimeout(r, 450));
-
   const ok = await attemptLogin(username, password);
   setLoginLoading(false);
-
   if (ok) {
     localStorage.setItem(FAILS_KEY, '0');
     failedAttempts = 0;
@@ -909,7 +904,6 @@ loginForm.addEventListener('submit', async (e) => {
   }
 });
 
-/* Enter admin dashboard */
 function enterAdmin(session) {
   loginScreen.classList.add('hidden');
   document.getElementById('loginUser').value = '';
@@ -924,17 +918,15 @@ function enterAdmin(session) {
     document.getElementById('secSession').textContent = new Date(session.started).toLocaleString();
     document.getElementById('secRemember').textContent = session.remember ? 'Yes' : 'No (session only)';
   }
-  renderAll();
+  initAdmin();
 }
 
-/* Logout */
 function logout() {
   localStorage.removeItem(AUTH_KEY);
   sessionStorage.removeItem(AUTH_KEY);
   location.reload();
 }
 
-/* Restore session on load */
 (function restoreSession() {
   let session = null;
   try {
@@ -948,13 +940,86 @@ function logout() {
   }
 })();
 
-/* Live lockout display on load */
 if (isLockedOut()) showLockout();
 
 /* ═══════════════════════════════════════════════════════════════
-   ADMIN DATA LAYER
+   INDEXEDDB — for media (logos, photos, uploads)
+   Stores blobs / data URLs without the 5MB localStorage cap.
    ═══════════════════════════════════════════════════════════════ */
+const IDB_NAME = 'arcdigital_media_db';
+const IDB_VERSION = 1;
+const IDB_STORE = 'media';
+let idbPromise = null;
 
+function openIDB() {
+  if (idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: 'key' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return idbPromise;
+}
+
+async function idbPut(key, dataUrl) {
+  const db = await openIDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put({ key, dataUrl, updated: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbGet(key) {
+  const db = await openIDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result ? req.result.dataUrl : null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbDelete(key) {
+  const db = await openIDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbListKeys() {
+  const db = await openIDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).getAllKeys();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbEstimateSize() {
+  if (navigator.storage && navigator.storage.estimate) {
+    try {
+      const est = await navigator.storage.estimate();
+      return { usage: est.usage || 0, quota: est.quota || 0 };
+    } catch {}
+  }
+  return { usage: 0, quota: 0 };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN DATA LAYER — settings stay in localStorage
+   ═══════════════════════════════════════════════════════════════ */
 const LS_KEY = 'arcdigital_admin_v1';
 
 const DEFAULTS = {
@@ -963,8 +1028,8 @@ const DEFAULTS = {
     desc: "I'm a developer in Liberia. I build custom management systems — schools, hospitals, HR, inventory, restaurants, churches, hotels and more. ArcDigital is my flagship. Call 0761 980 718.",
     theme: '#1a1410',
     demoUrl: 'https://archieswen01-art.github.io/ArcSchool/',
-    logo: '',
-    favicon: '',
+    logoKey: '',
+    faviconKey: '',
   },
   hero: {
     line1: 'Custom software for',
@@ -1001,11 +1066,11 @@ const DEFAULTS = {
     { id:'build', icon:'build', name:'Build', accent:'Cost', sub:'Construction Estimator', tag:'Construction', cat:'Property', chips:['USD & LRD','PDF reports','Excel export','Foundation · Roofing'], c1:'#93c5fd', c2:'#3b82f6', c3:'#1d4ed8', link:'', desc:'Estimate foundations, walls and roofing in USD or LRD, then print a clean client report or export the full breakdown to Excel.' },
   ],
   team: [
-    { id:'t1', role:'Founder', title:'Founder & Lead Developer', name:'[Your Name]', init:'AD', photo:'', bio:'Architect of ArcDigital. Writes the backend, ships the frontend, answers the phone. Started this to fix a problem he kept seeing in Liberian schools.', c1:'#fdba74', c2:'#f97316', c3:'#c2410c', links:'phone|tel:0761980718|Call\nwa|https://wa.me/231761980718|WhatsApp\nin|#|LinkedIn\ngh|#|GitHub' },
-    { id:'t2', role:'Design', title:'Lead Designer', name:'[Team Member]', init:'DS', photo:'', bio:'Draws the interfaces you actually enjoy using. Turns messy admin requirements into clean screens — dark mode included, obviously.', c1:'#f0abfc', c2:'#d946ef', c3:'#a21caf', links:'phone|tel:0888133667|Call\nig|#|Instagram\nin|#|LinkedIn' },
-    { id:'t3', role:'Backend', title:'Backend Engineer', name:'[Team Member]', init:'BE', photo:'', bio:"Keeps the database fast and the APIs honest. Sleuths down bugs at 2am. If a receipt prints or a report card loads, that's usually him.", c1:'#7dd3fc', c2:'#0ea5e9', c3:'#0369a1', links:'gh|#|GitHub\nin|#|LinkedIn' },
-    { id:'t4', role:'Mobile', title:'Mobile Engineer', name:'[Team Member]', init:'ME', photo:'', bio:"Makes sure ArcDigital works on the cheapest Android phone on the worst network. Parents check fees on the bus — that's on her.", c1:'#6ee7b7', c2:'#10b981', c3:'#047857', links:'gh|#|GitHub\nin|#|LinkedIn' },
-    { id:'t5', role:'Support', title:'Client Success', name:'[Team Member]', init:'CS', photo:'', bio:"Answers the phone when a principal can't log in 5 minutes before report cards go out. Onboards every new school personally.", c1:'#fcd34d', c2:'#f59e0b', c3:'#b45309', links:'phone|tel:0761980718|Call\nmail|mailto:hello@arcdigital.app|Email\nwa|https://wa.me/231761980718|WhatsApp' },
+    { id:'t1', role:'Founder', title:'Founder & Lead Developer', name:'[Your Name]', init:'AD', photoKey:'', bio:'Architect of ArcDigital. Writes the backend, ships the frontend, answers the phone. Started this to fix a problem he kept seeing in Liberian schools.', c1:'#fdba74', c2:'#f97316', c3:'#c2410c', links:'phone|tel:0761980718|Call\nwa|https://wa.me/231761980718|WhatsApp\nin|#|LinkedIn\ngh|#|GitHub' },
+    { id:'t2', role:'Design', title:'Lead Designer', name:'[Team Member]', init:'DS', photoKey:'', bio:'Draws the interfaces you actually enjoy using. Turns messy admin requirements into clean screens — dark mode included, obviously.', c1:'#f0abfc', c2:'#d946ef', c3:'#a21caf', links:'phone|tel:0888133667|Call\nig|#|Instagram\nin|#|LinkedIn' },
+    { id:'t3', role:'Backend', title:'Backend Engineer', name:'[Team Member]', init:'BE', photoKey:'', bio:"Keeps the database fast and the APIs honest. Sleuths down bugs at 2am. If a receipt prints or a report card loads, that's usually him.", c1:'#7dd3fc', c2:'#0ea5e9', c3:'#0369a1', links:'gh|#|GitHub\nin|#|LinkedIn' },
+    { id:'t4', role:'Mobile', title:'Mobile Engineer', name:'[Team Member]', init:'ME', photoKey:'', bio:"Makes sure ArcDigital works on the cheapest Android phone on the worst network. Parents check fees on the bus — that's on her.", c1:'#6ee7b7', c2:'#10b981', c3:'#047857', links:'gh|#|GitHub\nin|#|LinkedIn' },
+    { id:'t5', role:'Support', title:'Client Success', name:'[Team Member]', init:'CS', photoKey:'', bio:"Answers the phone when a principal can't log in 5 minutes before report cards go out. Onboards every new school personally.", c1:'#fcd34d', c2:'#f59e0b', c3:'#b45309', links:'phone|tel:0761980718|Call\nmail|mailto:hello@arcdigital.app|Email\nwa|https://wa.me/231761980718|WhatsApp' },
   ],
   services: [
     { id:'s1', icon:'school', title:'School management', desc:'Full K-12 platforms: enrolment, fees, results, attendance, timetables, ID cards, transcripts — the whole thing.' },
@@ -1018,11 +1083,10 @@ const DEFAULTS = {
     { id:'s8', icon:'build', title:'Construction estimating', desc:'Foundation, walls and roofing estimates in USD or LRD, with printable reports and Excel export.' },
     { id:'s9', icon:'idea', title:'Bring your own idea', desc:"Have something else in mind? Describe it in one call and I'll tell you honestly what it takes." },
   ],
-  media: [],
+  media: [], // list of { id, name, key, size, type } — actual data is in IndexedDB
 };
 
 let state = load();
-let dirty = false;
 
 function load() {
   try {
@@ -1041,21 +1105,25 @@ function load() {
     };
   } catch { return structuredClone(DEFAULTS); }
 }
+
 function save() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(state));
     markSaved();
   } catch (e) {
-    toast('Storage full — try removing some uploaded images.', 'error');
+    // Should rarely happen now that media isn't in here
+    toast('Storage full — settings too large. Try exporting and resetting.', 'error');
     console.error(e);
   }
 }
+
 function markSaved() {
   const el = document.getElementById('saveStatus');
   el.style.opacity = '1';
   clearTimeout(markSaved._t);
   markSaved._t = setTimeout(() => { el.style.opacity = '0'; }, 1600);
 }
+
 function uid(prefix='id') { return prefix + '_' + Math.random().toString(36).slice(2,9); }
 
 /* ───────── toast ───────── */
@@ -1080,7 +1148,7 @@ const TITLES = {
   site:      ['Site settings','Title, logo, favicon, demo URL'],
   contact:   ['Contact info','Phones, email, hours'],
   hero:      ['Hero section','Headline, subheadline, badge'],
-  media:     ['Media library','Uploaded images'],
+  media:     ['Media library','Uploaded images (IndexedDB)'],
   security:  ['Security','Session info and password'],
 };
 function switchTab(name) {
@@ -1119,7 +1187,6 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open')); });
 
-let pendingConfirm = null;
 function confirmAction(title, msg, onYes) {
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmMsg').textContent = msg;
@@ -1128,6 +1195,35 @@ function confirmAction(title, msg, onYes) {
   btn.replaceWith(clone);
   clone.addEventListener('click', () => { closeModal('confirmModal'); onYes(); });
   openModal('confirmModal');
+}
+
+/* ───────── storage meter ───────── */
+async function updateStorageMeter() {
+  const lsBytes = new Blob([localStorage.getItem(LS_KEY) || '']).size;
+  let idbBytes = 0;
+  try {
+    const keys = await idbListKeys();
+    for (const k of keys) {
+      const v = await idbGet(k);
+      if (v) idbBytes += new Blob([v]).size;
+    }
+  } catch {}
+  const total = lsBytes + idbBytes;
+  const est = await idbEstimateSize();
+  // Use browser quota if available, else assume 100MB for the meter scale
+  const quota = est.quota || 100 * 1024 * 1024;
+  const pct = Math.min(100, (total / quota) * 100);
+
+  const fill = document.getElementById('storageFill');
+  const pctEl = document.getElementById('storagePct');
+  const textEl = document.getElementById('storageText');
+  if (!fill) return;
+  fill.style.width = pct.toFixed(1) + '%';
+  fill.className = 'meter-fill ' + (pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-amber-500' : 'bg-emerald-500');
+  pctEl.textContent = pct < 0.1 ? '<0.1%' : pct.toFixed(1) + '%';
+
+  const fmt = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(2) + ' MB';
+  textEl.innerHTML = `<span class="text-emerald-400">localStorage:</span> ${fmt(lsBytes)} &nbsp;·&nbsp; <span class="text-sky-400">IndexedDB:</span> ${fmt(idbBytes)} &nbsp;·&nbsp; <span class="text-slate-400">Total:</span> ${fmt(total)}${est.quota ? ` of ~${fmt(quota)}` : ''}`;
 }
 
 /* ───────── dashboard ───────── */
@@ -1143,22 +1239,26 @@ function renderDashboard() {
     el.textContent = ok ? okText : badText;
   };
   setHealth('healthDemo', !!(state.site.demoUrl && state.site.demoUrl.trim()));
-  setHealth('healthLogo', !!state.site.logo);
+  setHealth('healthLogo', !!state.site.logoKey);
   setHealth('healthPhone', !!(state.contact.phone1 && state.contact.phone1.trim()));
-  setHealth('healthTeam', state.team.length > 0 && state.team.some(t => t.photo));
+  setHealth('healthTeam', state.team.length > 0 && state.team.some(t => t.photoKey));
 
   const wrap = document.getElementById('dashRecent');
   const recent = state.projects.slice(0, 5);
-  if (!recent.length) { wrap.innerHTML = '<p class="text-xs text-slate-500">No projects yet.</p>'; return; }
-  wrap.innerHTML = recent.map(p => `
-    <div class="flex items-center gap-3 row-card">
-      <div class="thumb" style="background:${p.c3 || '#332720'}">${(p.name||'?').slice(0,2).toUpperCase()}</div>
-      <div class="min-w-0 flex-1">
-        <p class="text-sm font-semibold truncate">${esc(p.name||'')}<span style="color:${p.c2||'#f97316'}">${esc(p.accent||'')}</span></p>
-        <p class="text-[11px] text-slate-500 truncate">${esc(p.sub||'')}</p>
-      </div>
-      <span class="badge ${p.link && p.link.trim() ? 'badge-on' : 'badge-off'}">${p.link && p.link.trim() ? 'Linked' : 'No link'}</span>
-    </div>`).join('');
+  if (!recent.length) { wrap.innerHTML = '<p class="text-xs text-slate-500">No projects yet.</p>'; }
+  else {
+    wrap.innerHTML = recent.map(p => `
+      <div class="flex items-center gap-3 row-card">
+        <div class="thumb" style="background:${p.c3 || '#332720'}">${(p.name||'?').slice(0,2).toUpperCase()}</div>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-semibold truncate">${esc(p.name||'')}<span style="color:${p.c2||'#f97316'}">${esc(p.accent||'')}</span></p>
+          <p class="text-[11px] text-slate-500 truncate">${esc(p.sub||'')}</p>
+        </div>
+        <span class="badge ${p.link && p.link.trim() ? 'badge-on' : 'badge-off'}">${p.link && p.link.trim() ? 'Linked' : 'No link'}</span>
+      </div>`).join('');
+  }
+
+  updateStorageMeter();
 }
 
 /* ───────── security ───────── */
@@ -1263,8 +1363,8 @@ function renderTeam() {
   empty.classList.add('hidden');
   wrap.innerHTML = state.team.map(t => `
     <div class="row-card flex items-start gap-3">
-      <div class="thumb">
-        ${t.photo ? `<img src="${t.photo}" alt="" class="h-full w-full object-cover" />` : (t.init || '?')}
+      <div class="thumb" data-photo-key="${t.photoKey||''}">
+        ${t.photoKey ? `<img src="" alt="" class="h-full w-full object-cover" data-photo-img="${t.photoKey}" />` : (t.init || '?')}
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 flex-wrap">
@@ -1279,40 +1379,59 @@ function renderTeam() {
         <button onclick="deleteTeam('${t.id}')" class="btn btn-danger btn-sm">Delete</button>
       </div>
     </div>`).join('');
+  hydratePhotos();
+}
+async function hydratePhotos() {
+  const imgs = document.querySelectorAll('[data-photo-img]');
+  for (const img of imgs) {
+    const key = img.dataset.photoImg;
+    try {
+      const url = await idbGet(key);
+      if (url) { img.src = url; img.style.display = 'block'; }
+    } catch {}
+  }
 }
 function openTeamModal(id) {
   const isEdit = !!id;
   document.getElementById('teamModalTitle').textContent = isEdit ? 'Edit team member' : 'Add team member';
-  const t = isEdit ? state.team.find(x => x.id === id) : { id:uid('t'), role:'', title:'', name:'', init:'', photo:'', bio:'', c1:'#fdba74', c2:'#f97316', c3:'#c2410c', links:'' };
+  const t = isEdit ? state.team.find(x => x.id === id) : { id:uid('t'), role:'', title:'', name:'', init:'', photoKey:'', bio:'', c1:'#fdba74', c2:'#f97316', c3:'#c2410c', links:'' };
   document.getElementById('tId').value = t.id;
   document.getElementById('tRole').value = t.role || '';
   document.getElementById('tTitle').value = t.title || '';
   document.getElementById('tName').value = t.name || '';
   document.getElementById('tInit').value = t.init || '';
   document.getElementById('tBio').value = t.bio || '';
-  document.getElementById('tPhoto').value = t.photo || '';
+  document.getElementById('tPhoto').value = t.photoKey || '';
   document.getElementById('tC1').value = t.c1 || '#fdba74';
   document.getElementById('tC2').value = t.c2 || '#f97316';
   document.getElementById('tC3').value = t.c3 || '#c2410c';
   document.getElementById('tLinks').value = t.links || '';
-  updateTeamPhotoPreview(t.photo);
+  updateTeamPhotoPreview(t.photoKey);
   openModal('teamModal');
 }
-function updateTeamPhotoPreview(dataUrl) {
+async function updateTeamPhotoPreview(photoKey) {
   const img = document.getElementById('tPhotoPreview');
   const ph = document.getElementById('tPhotoPlaceholder');
-  if (dataUrl) { img.src = dataUrl; img.classList.remove('hidden'); ph.classList.add('hidden'); }
-  else { img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden'); }
+  if (photoKey) {
+    const url = await idbGet(photoKey);
+    if (url) { img.src = url; img.classList.remove('hidden'); ph.classList.add('hidden'); return; }
+  }
+  img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden');
 }
-function handleTeamPhoto(e) {
+async function handleTeamPhoto(e) {
   const file = e.target.files[0]; if (!file) return;
-  fileToDataURL(file, 5 * 1024 * 1024).then(url => {
-    document.getElementById('tPhoto').value = url;
-    updateTeamPhotoPreview(url);
+  fileToDataURL(file, 5 * 1024 * 1024).then(async url => {
+    const key = 'team_' + uid('p');
+    await idbPut(key, url);
+    document.getElementById('tPhoto').value = key;
+    updateTeamPhotoPreview(key);
+    toast('Photo uploaded');
   }).catch(err => toast(err, 'error'));
   e.target.value = '';
 }
-function removeTeamPhoto() {
+async function removeTeamPhoto() {
+  const key = document.getElementById('tPhoto').value;
+  if (key) { try { await idbDelete(key); } catch {} }
   document.getElementById('tPhoto').value = '';
   updateTeamPhotoPreview('');
 }
@@ -1326,7 +1445,7 @@ function saveTeam() {
     role: document.getElementById('tRole').value.trim() || 'Team',
     title: document.getElementById('tTitle').value.trim() || 'Team member',
     bio: document.getElementById('tBio').value.trim(),
-    photo: document.getElementById('tPhoto').value || '',
+    photoKey: document.getElementById('tPhoto').value || '',
     c1: document.getElementById('tC1').value.trim() || '#fdba74',
     c2: document.getElementById('tC2').value.trim() || '#f97316',
     c3: document.getElementById('tC3').value.trim() || '#c2410c',
@@ -1339,7 +1458,8 @@ function saveTeam() {
 }
 function deleteTeam(id) {
   const t = state.team.find(x => x.id === id);
-  confirmAction('Delete team member?', `"${t?.name||''}" will be removed.`, () => {
+  confirmAction('Delete team member?', `"${t?.name||''}" will be removed.`, async () => {
+    if (t?.photoKey) { try { await idbDelete(t.photoKey); } catch {} }
     state.team = state.team.filter(x => x.id !== id);
     save(); renderTeam(); renderDashboard();
     toast('Team member deleted');
@@ -1440,8 +1560,8 @@ function loadSiteSettings() {
   document.getElementById('siteDesc').value = state.site.desc || '';
   document.getElementById('siteTheme').value = state.site.theme || '';
   document.getElementById('siteDemoUrl').value = state.site.demoUrl || '';
-  updateLogoPreview(state.site.logo);
-  updateFaviconPreview(state.site.favicon);
+  updateLogoPreview(state.site.logoKey);
+  updateFaviconPreview(state.site.faviconKey);
 }
 function saveSiteSettings() {
   state.site.title = document.getElementById('siteTitle').value.trim();
@@ -1451,46 +1571,63 @@ function saveSiteSettings() {
   save(); renderDashboard();
   toast('Site settings saved');
 }
-function updateLogoPreview(dataUrl) {
+async function updateLogoPreview(key) {
   const img = document.getElementById('logoPreview');
   const ph = document.getElementById('logoPlaceholder');
   const sb = document.getElementById('sidebarLogo');
-  if (dataUrl) {
-    img.src = dataUrl; img.classList.remove('hidden'); ph.classList.add('hidden');
-    if (sb) { sb.src = dataUrl; sb.style.display = 'block'; }
-  } else {
-    img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden');
-    if (sb) { sb.src = ''; sb.style.display = 'none'; }
+  if (key) {
+    const url = await idbGet(key);
+    if (url) {
+      img.src = url; img.classList.remove('hidden'); ph.classList.add('hidden');
+      if (sb) { sb.src = url; sb.style.display = 'block'; }
+      return;
+    }
   }
+  img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden');
+  if (sb) { sb.src = ''; sb.style.display = 'none'; }
 }
-function updateFaviconPreview(dataUrl) {
+async function updateFaviconPreview(key) {
   const img = document.getElementById('faviconPreview');
   const ph = document.getElementById('faviconPlaceholder');
-  if (dataUrl) { img.src = dataUrl; img.classList.remove('hidden'); ph.classList.add('hidden'); }
-  else { img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden'); }
+  if (key) {
+    const url = await idbGet(key);
+    if (url) { img.src = url; img.classList.remove('hidden'); ph.classList.add('hidden'); return; }
+  }
+  img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden');
 }
-function handleLogoUpload(e) {
+async function handleLogoUpload(e) {
   const file = e.target.files[0]; if (!file) return;
-  fileToDataURL(file, 5 * 1024 * 1024).then(url => {
-    state.site.logo = url; save(); updateLogoPreview(url); renderDashboard();
+  fileToDataURL(file, 5 * 1024 * 1024).then(async url => {
+    // Delete old
+    if (state.site.logoKey) { try { await idbDelete(state.site.logoKey); } catch {} }
+    const key = 'logo_' + uid('k');
+    await idbPut(key, url);
+    state.site.logoKey = key; save();
+    updateLogoPreview(key); renderDashboard();
     toast('Logo uploaded');
   }).catch(err => toast(err, 'error'));
   e.target.value = '';
 }
-function handleFaviconUpload(e) {
+async function handleFaviconUpload(e) {
   const file = e.target.files[0]; if (!file) return;
-  fileToDataURL(file, 512 * 1024).then(url => {
-    state.site.favicon = url; save(); updateFaviconPreview(url);
+  fileToDataURL(file, 512 * 1024).then(async url => {
+    if (state.site.faviconKey) { try { await idbDelete(state.site.faviconKey); } catch {} }
+    const key = 'favicon_' + uid('k');
+    await idbPut(key, url);
+    state.site.faviconKey = key; save();
+    updateFaviconPreview(key);
     toast('Favicon uploaded');
   }).catch(err => toast(err, 'error'));
   e.target.value = '';
 }
-function removeLogo() {
-  state.site.logo = ''; save(); updateLogoPreview(''); renderDashboard();
+async function removeLogo() {
+  if (state.site.logoKey) { try { await idbDelete(state.site.logoKey); } catch {} }
+  state.site.logoKey = ''; save(); updateLogoPreview(''); renderDashboard();
   toast('Logo removed', 'info');
 }
-function removeFavicon() {
-  state.site.favicon = ''; save(); updateFaviconPreview('');
+async function removeFavicon() {
+  if (state.site.faviconKey) { try { await idbDelete(state.site.faviconKey); } catch {} }
+  state.site.faviconKey = ''; save(); updateFaviconPreview('');
   toast('Favicon removed', 'info');
 }
 
@@ -1533,48 +1670,77 @@ function saveHero() {
     sub: document.getElementById('heroSub').value.trim(),
     badge: document.getElementById('heroBadge').value.trim(),
   };
-  save();
-  toast('Hero saved');
+  save(); toast('Hero saved');
 }
 
 /* ───────── media library ───────── */
-function renderMedia() {
+async function renderMedia() {
   const grid = document.getElementById('mediaGrid');
   const empty = document.getElementById('mediaEmpty');
   if (!state.media.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
   empty.classList.add('hidden');
+  // Render cards with placeholder thumbnails, then hydrate
   grid.innerHTML = state.media.map(m => `
     <div class="row-card p-2">
       <div class="aspect-square rounded-lg overflow-hidden bg-black/30 mb-2">
-        <img src="${m.url}" alt="" class="h-full w-full object-cover" />
+        <img src="" data-media-img="${m.key}" alt="" class="h-full w-full object-cover" />
       </div>
       <p class="text-[10px] text-slate-400 truncate" title="${esc(m.name||'')}">${esc(m.name||'image')}</p>
+      <p class="text-[9px] text-slate-600 mt-0.5">${m.size ? (m.size < 1048576 ? (m.size/1024).toFixed(0)+' KB' : (m.size/1048576).toFixed(2)+' MB') : ''}</p>
       <div class="flex gap-1 mt-1.5">
-        <button onclick="copyMediaUrl('${m.id}')" class="btn btn-g btn-sm flex-1 text-[10px]">Copy URL</button>
+        <button onclick="copyMediaUrl('${m.id}')" class="btn btn-g btn-sm flex-1 text-[10px]">Copy</button>
         <button onclick="deleteMedia('${m.id}')" class="btn btn-danger btn-sm text-[10px]">Del</button>
       </div>
     </div>`).join('');
+  // Hydrate thumbnails from IndexedDB
+  const imgs = grid.querySelectorAll('[data-media-img]');
+  for (const img of imgs) {
+    const key = img.dataset.mediaImg;
+    try {
+      const url = await idbGet(key);
+      if (url) img.src = url;
+    } catch {}
+  }
+  updateStorageMeter();
 }
-function handleMediaUpload(e) {
+async function handleMediaUpload(e) {
   const files = Array.from(e.target.files || []);
   if (!files.length) return;
-  files.reduce((chain, file) => chain.then(() => new Promise((resolve) => {
-    fileToDataURL(file, 5 * 1024 * 1024).then(url => {
-      state.media.unshift({ id: uid('m'), name: file.name, url, size: file.size });
-      save(); renderMedia();
-      resolve();
-    }).catch(err => { toast(err, 'error'); resolve(); });
-  })), Promise.resolve()).then(() => toast('Upload complete'));
+  let done = 0, failed = 0;
+  for (const file of files) {
+    try {
+      const url = await fileToDataURL(file, 5 * 1024 * 1024);
+      const key = 'media_' + uid('k');
+      await idbPut(key, url);
+      state.media.unshift({ id: uid('m'), name: file.name, key, size: file.size, type: file.type });
+      done++;
+    } catch (err) {
+      failed++;
+      toast(err, 'error');
+    }
+  }
+  if (done) {
+    save(); renderMedia();
+    toast(`Uploaded ${done} file${done>1?'s':''}${failed?` (${failed} failed)`:''}`);
+  }
   e.target.value = '';
 }
-function copyMediaUrl(id) {
+async function copyMediaUrl(id) {
   const m = state.media.find(x => x.id === id); if (!m) return;
-  navigator.clipboard.writeText(m.url)
-    .then(() => toast('URL copied'))
-    .catch(() => toast('Could not copy', 'error'));
+  try {
+    const url = await idbGet(m.key);
+    if (url) {
+      await navigator.clipboard.writeText(url);
+      toast('Data URL copied — paste it anywhere');
+    } else {
+      toast('Image not found in storage', 'error');
+    }
+  } catch { toast('Could not copy', 'error'); }
 }
 function deleteMedia(id) {
-  confirmAction('Delete image?', 'This image will be removed from the library.', () => {
+  const m = state.media.find(x => x.id === id);
+  confirmAction('Delete image?', 'This image will be removed from the library.', async () => {
+    if (m?.key) { try { await idbDelete(m.key); } catch {} }
     state.media = state.media.filter(x => x.id !== id);
     save(); renderMedia();
     toast('Image deleted');
@@ -1596,22 +1762,32 @@ async function changePassword() {
 }
 
 /* ───────── import / export / reset ───────── */
-function exportData() {
-  const data = JSON.stringify(state, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
+async function exportData() {
+  // Gather media from IndexedDB too
+  const mediaData = {};
+  for (const m of state.media) {
+    try {
+      const url = await idbGet(m.key);
+      if (url) mediaData[m.key] = url;
+    } catch {}
+  }
+  const exportObj = { ...state, _media: mediaData };
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `arcdigital-backup-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('Data exported');
+  toast('Data exported (with media)');
 }
 function importData(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const parsed = JSON.parse(reader.result);
+      const mediaData = parsed._media || {};
+      delete parsed._media;
       state = { ...structuredClone(DEFAULTS), ...parsed,
         site:    { ...DEFAULTS.site,    ...(parsed.site||{}) },
         hero:    { ...DEFAULTS.hero,    ...(parsed.hero||{}) },
@@ -1622,16 +1798,25 @@ function importData(e) {
         services:Array.isArray(parsed.services)? parsed.services: structuredClone(DEFAULTS.services),
         media:   Array.isArray(parsed.media)   ? parsed.media   : [],
       };
+      // Restore media blobs into IndexedDB
+      for (const [key, url] of Object.entries(mediaData)) {
+        try { await idbPut(key, url); } catch (err) { console.warn('Could not restore', key, err); }
+      }
       save();
       renderAll();
-      toast('Data imported');
+      toast('Data imported' + (Object.keys(mediaData).length ? ' with media' : ''));
     } catch (err) { toast('Invalid JSON file', 'error'); }
   };
   reader.readAsText(file);
   e.target.value = '';
 }
 function resetAll() {
-  confirmAction('Reset all data?', 'All your custom changes will be lost and defaults restored.', () => {
+  confirmAction('Reset all data?', 'All your custom changes (and uploaded media) will be lost and defaults restored.', async () => {
+    // Clear IndexedDB
+    try {
+      const keys = await idbListKeys();
+      for (const k of keys) await idbDelete(k);
+    } catch {}
     state = structuredClone(DEFAULTS);
     save();
     renderAll();
@@ -1676,9 +1861,9 @@ function bindDropzone(zoneId, inputId, handler) {
 }
 
 /* ───────── initial render ───────── */
-function renderAll() {
-  updateLogoPreview(state.site.logo);
-  updateFaviconPreview(state.site.favicon);
+async function renderAll() {
+  updateLogoPreview(state.site.logoKey);
+  updateFaviconPreview(state.site.faviconKey);
   renderDashboard();
   renderProjects();
   renderTeam();
@@ -1692,7 +1877,8 @@ function renderAll() {
   renderSecurity();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+/* Called once after login succeeds */
+function initAdmin() {
   renderAll();
   bindDropzone('logoDropzone', 'logoInput', handleLogoUpload);
   bindDropzone('faviconDropzone', 'faviconInput', handleFaviconUpload);
@@ -1710,7 +1896,7 @@ document.addEventListener('DOMContentLoaded', () => {
       else save();
     }
   });
-});
+}
 </script>
 </body>
 </html>

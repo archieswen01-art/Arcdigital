@@ -722,7 +722,31 @@ function loadAdminData() {
     return JSON.parse(raw);
   } catch { return null; }
 }
-
+/* Load media blobs from IndexedDB (matches admin.html) */
+const IDB_NAME = 'arcdigital_media_db';
+const IDB_STORE = 'media';
+let _idb = null;
+function openIDB() {
+  if (_idb) return _idb;
+  _idb = new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE, { keyPath: 'key' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return _idb;
+}
+function idbGet(key) {
+  return openIDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result ? req.result.dataUrl : null);
+    req.onerror = () => reject(req.error);
+  }));
+}
 const ADMIN = loadAdminData();
 
 /* Merge: use admin values if present, otherwise fall back */
